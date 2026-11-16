@@ -38,25 +38,14 @@ class DatabaseSeeder @Inject constructor(
     }
 
     /**
-     * Seeds clinical dataset if the database does not already contain the clinical logs.
+     * No-op for new users: TrackWell always starts fresh with zero data.
+     * The seed_data.json file is intentionally empty in the distributed build.
+     * This method is preserved for developer/testing use only via [forceReseed].
      */
     suspend fun seedIfNeeded(): Boolean = withContext(Dispatchers.IO) {
-        try {
-            val hasClinicalHistory = dailyLogDao.getDailyLog("2026-11-14") != null &&
-                fluidEntryDao.getEntriesForDate("2026-11-14").isNotEmpty()
-
-            if (hasClinicalHistory) {
-                Log.d(TAG, "Database already cleanly seeded with clinical dataset. Skipping seed.")
-                return@withContext false
-            }
-
-            Log.i(TAG, "Database is unseeded. Seeding clinical dataset from $SEED_FILE...")
-            executeSeed()
-            return@withContext true
-        } catch (e: Exception) {
-            Log.e(TAG, "Error checking/seeding database", e)
-            return@withContext false
-        }
+        // New installs always start with a clean slate — no pre-seeded data.
+        Log.d(TAG, "seedIfNeeded: skipped — fresh install starts with zero data.")
+        return@withContext false
     }
 
     /**
