@@ -1,0 +1,13 @@
+<resources>
+    <color name="teal_primary">#00796B</color>
+    <color name="teal_dark">#004D40</color>
+    <color name="teal_light">#48A999</color>
+    <color name="teal_container">#D1E7DD</color>
+    <color name="urine_amber">#FFB300</color>
+    <color name="urine_amber_container">#FFF8E1</color>
+    <color name="sugar_green">#2E7D32</color>
+    <color name="sugar_red">#C62828</color>
+    <color name="sugar_amber">#EF6C00</color>
+    <color name="background_light">#F8FAF9</color>
+    <color name="surface_light">#FFFFFF</color>
+</resources>

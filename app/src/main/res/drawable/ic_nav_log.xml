@@ -1,0 +1,30 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24">
+    <!-- Rounded medical log card outline -->
+    <path
+        android:strokeColor="#7F8696"
+        android:strokeWidth="1.8"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round"
+        android:fillColor="#00000000"
+        android:pathData="M16,3 L6,3 C4.34,3 3,4.34 3,6 L3,18 C3,19.66 4.34,21 6,21 L18,21 C19.66,21 21,19.66 21,18 L21,8 Z" />
+    <!-- Angled top-right fold -->
+    <path
+        android:strokeColor="#7F8696"
+        android:strokeWidth="1.8"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round"
+        android:fillColor="#00000000"
+        android:pathData="M16,3 L21,8" />
+    <!-- Pulse heartbeat wave line inside medical card -->
+    <path
+        android:strokeColor="#7F8696"
+        android:strokeWidth="1.8"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round"
+        android:fillColor="#00000000"
+        android:pathData="M6.5,13.5 L9,13.5 L10.5,10.5 L12.5,16.5 L14.5,10.5 L16,13.5 L17.5,13.5" />
+</vector>

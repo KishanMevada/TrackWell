@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+
+    <!-- Renal Artery (Crimson) -->
+    <path
+        android:pathData="M 55,48 C 63,45 72,41 81,38"
+        android:strokeColor="#E11D48"
+        android:strokeWidth="5"
+        android:strokeLineCap="round" />
+
+    <!-- Renal Vein (Sapphire Blue) -->
+    <path
+        android:pathData="M 57,56 C 65,54 74,50 83,48"
+        android:strokeColor="#0284C7"
+        android:strokeWidth="5.5"
+        android:strokeLineCap="round" />
+
+    <!-- Ureter (Golden Amber) -->
+    <path
+        android:pathData="M 53,62 C 60,71 64,80 66,86"
+        android:strokeColor="#F59E0B"
+        android:strokeWidth="3.5"
+        android:strokeLineCap="round" />
+
+    <!-- Kidney Parenchyma Body (Base Crimson #BE123C) -->
+    <path
+        android:pathData="M 41,25 C 26,25 16,37 16,51 C 16,67 27,77 41,77 C 49,77 55,71 54,62 C 53,55 46,50 53,45 C 55,35 50,25 41,25 Z"
+        android:fillColor="#BE123C" />
+
+    <!-- Shading & Cortex Depth Layer -->
+    <path
+        android:pathData="M 41,25 C 47,25 53,33 53,45 C 46,50 53,55 54,62 C 55,71 49,77 41,77 C 32,77 24,71 21,63 C 27,70 34,73 41,73 C 47,73 51,68 50,61 C 49,55 43,51 49,46 C 51,37 46,28 41,28 C 36,28 30,31 25,37 C 28,30 34,25 41,25 Z"
+        android:fillColor="#881337" />
+
+    <!-- Specular Highlight Curve (Glossy 3D finish) -->
+    <path
+        android:pathData="M 39,28 C 28,29 20,40 20,51"
+        android:strokeColor="#FFFFFF"
+        android:strokeAlpha="0.55"
+        android:strokeWidth="4"
+        android:strokeLineCap="round" />
+
+    <!-- Internal Vascular Striae -->
+    <path
+        android:pathData="M 45,51 C 36,46 28,45 28,45 M 45,53 C 35,53 26,54 26,54 M 45,55 C 36,62 29,66 29,66"
+        android:strokeColor="#FFFFFF"
+        android:strokeAlpha="0.30"
+        android:strokeWidth="1.5"
+        android:strokeLineCap="round" />
+
+</vector>

@@ -1,0 +1,4 @@
+<resources>
+    <string name="app_name">TrackWell</string>
+    <string name="medical_disclaimer">TrackWell is a personal health logging tool and does not provide medical advice or recommend insulin doses. Please consult your nephrologist and healthcare team for targets and treatment adjustments.</string>
+</resources>

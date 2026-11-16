@@ -1,0 +1,21 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24">
+    <!-- Outline rounded rectangle 18x21, stroke 1.8dp, radius 3 -->
+    <path
+        android:strokeColor="#7F8696"
+        android:strokeWidth="1.8"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round"
+        android:fillColor="#00000000"
+        android:pathData="M6,2.5 L18,2.5 C19.65,2.5 21,3.85 21,5.5 L21,18.5 C21,20.15 19.65,21.5 18,21.5 L6,21.5 C4.35,21.5 3,20.15 3,18.5 L3,5.5 C3,3.85 4.35,2.5 6,2.5 Z" />
+    <!-- Three left-aligned lines (two long, one short) -->
+    <path
+        android:strokeColor="#7F8696"
+        android:strokeWidth="1.8"
+        android:strokeLineCap="round"
+        android:fillColor="#00000000"
+        android:pathData="M7.5,7.5 L16.5,7.5 M7.5,12 L16.5,12 M7.5,16.5 L12.5,16.5" />
+</vector>
