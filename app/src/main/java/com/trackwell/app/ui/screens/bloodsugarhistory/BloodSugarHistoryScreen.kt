@@ -92,6 +92,7 @@ fun BloodSugarHistoryScreen(
     var activeSugarSlot by remember { mutableStateOf(SugarSlot.suggestCurrentSlot()) }
     var editingSugarDay by remember { mutableStateOf<DayOverview?>(null) }
     var editingSugarSlot by remember { mutableStateOf<SugarSlot?>(null) }
+    var showFilters by remember { mutableStateOf(false) }
 
     Box(
         modifier = modifier
@@ -126,7 +127,10 @@ fun BloodSugarHistoryScreen(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.weight(1f)
+                    ) {
                         // Elevated Circular Claymorphic Back Button
                         Surface(
                             onClick = {
@@ -155,95 +159,93 @@ fun BloodSugarHistoryScreen(
                             }
                         }
 
-                        Spacer(modifier = Modifier.width(16.dp))
+                        Spacer(modifier = Modifier.width(12.dp))
 
-                        Column {
+                        Column(modifier = Modifier.weight(1f)) {
                             Text(
                                 text = "Blood Sugar History",
-                                fontSize = 22.sp,
+                                fontSize = 20.sp,
                                 fontWeight = FontWeight.Bold,
                                 color = Color(0xFF0F172A),
-                                letterSpacing = (-0.4).sp
+                                letterSpacing = (-0.4).sp,
+                                maxLines = 1
                             )
                             Spacer(modifier = Modifier.height(2.dp))
                             Text(
                                 text = "Glucose & Insulin Analytics",
-                                fontSize = 13.sp,
+                                fontSize = 12.sp,
                                 fontWeight = FontWeight.Normal,
-                                color = Color(0xFF64748B)
+                                color = Color(0xFF64748B),
+                                maxLines = 1
                             )
                         }
                     }
 
-                    // Calendar / Range indicator pill
+                    // Filter Toggle Pill
                     Surface(
                         onClick = {
                             HapticFeedbackHelper.performTickHaptic(context)
+                            showFilters = !showFilters
                         },
                         shape = RoundedCornerShape(16.dp),
-                        color = Color(0xFFFEE2E2),
-                        border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFFFECACA)),
+                        color = if (showFilters) Color(0xFFFEE2E2) else Color.White,
+                        border = androidx.compose.foundation.BorderStroke(1.dp, if (showFilters) Color(0xFFFECACA) else Color(0xFFE2E8F0)),
                         modifier = Modifier.padding(start = 8.dp)
                     ) {
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
                             modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp)
                         ) {
-                            Icon(
-                                painter = painterResource(id = R.drawable.ic_calendar),
-                                contentDescription = "Calendar Filter",
-                                tint = Color(0xFFEF4444),
-                                modifier = Modifier.size(14.dp)
-                            )
-                            Spacer(modifier = Modifier.width(6.dp))
                             Text(
-                                text = uiState.selectedRange.label,
+                                text = "Filter 📅",
                                 fontSize = 12.sp,
                                 fontWeight = FontWeight.SemiBold,
-                                color = Color(0xFFEF4444)
+                                color = if (showFilters) Color(0xFFEF4444) else Color(0xFF475569)
                             )
                         }
                     }
                 }
             }
 
-            item {
-                Spacer(modifier = Modifier.height(10.dp))
-            }
+            if (showFilters) {
+                item {
+                    Spacer(modifier = Modifier.height(10.dp))
+                }
 
-            // 3. Time Range Filter Chips Carousel (7D, 14D, 30D, 90D, All Time)
-            item {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .horizontalScroll(rememberScrollState())
-                        .padding(horizontal = 16.dp),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    SugarTimeRange.entries.filter { it != SugarTimeRange.CUSTOM }.forEach { range ->
-                        val isSelected = range == uiState.selectedRange
-                        val bg = if (isSelected) Color(0xFFFEE2E2) else Color.White
-                        val borderCol = if (isSelected) Color(0xFFFCA5A5) else Color(0xFFE2E8F0)
-                        val textCol = if (isSelected) Color(0xFFEF4444) else Color(0xFF64748B)
+                // 3. Time Range Filter Chips Carousel (7D, 14D, 30D, 90D, All Time)
+                item {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .horizontalScroll(rememberScrollState())
+                            .padding(horizontal = 16.dp),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        SugarTimeRange.entries.filter { it != SugarTimeRange.CUSTOM }.forEach { range ->
+                            val isSelected = range == uiState.selectedRange
+                            val bg = if (isSelected) Color(0xFFFEE2E2) else Color.White
+                            val borderCol = if (isSelected) Color(0xFFFCA5A5) else Color(0xFFE2E8F0)
+                            val textCol = if (isSelected) Color(0xFFEF4444) else Color(0xFF64748B)
 
-                        Box(
-                            modifier = Modifier
-                                .clip(RoundedCornerShape(20.dp))
-                                .background(bg)
-                                .border(width = 1.dp, color = borderCol, shape = RoundedCornerShape(20.dp))
-                                .clickable {
-                                    HapticFeedbackHelper.performTickHaptic(context)
-                                    viewModel.selectRange(range)
-                                }
-                                .padding(horizontal = 16.dp, vertical = 8.dp),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Text(
-                                text = range.label,
-                                fontSize = 13.sp,
-                                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
-                                color = textCol
-                            )
+                            Box(
+                                modifier = Modifier
+                                    .clip(RoundedCornerShape(20.dp))
+                                    .background(bg)
+                                    .border(width = 1.dp, color = borderCol, shape = RoundedCornerShape(20.dp))
+                                    .clickable {
+                                        HapticFeedbackHelper.performTickHaptic(context)
+                                        viewModel.selectRange(range)
+                                    }
+                                    .padding(horizontal = 16.dp, vertical = 8.dp),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Text(
+                                    text = range.label,
+                                    fontSize = 13.sp,
+                                    fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
+                                    color = textCol
+                                )
+                            }
                         }
                     }
                 }
@@ -365,7 +367,10 @@ fun BloodSugarHistoryScreen(
                                 verticalAlignment = Alignment.CenterVertically,
                                 horizontalArrangement = Arrangement.SpaceBetween
                             ) {
-                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    modifier = Modifier.weight(1f)
+                                ) {
                                     Box(
                                         modifier = Modifier
                                             .size(38.dp)
@@ -380,33 +385,36 @@ fun BloodSugarHistoryScreen(
                                             modifier = Modifier.size(20.dp)
                                         )
                                     }
-                                    Spacer(modifier = Modifier.width(12.dp))
-                                    Column {
+                                    Spacer(modifier = Modifier.width(10.dp))
+                                    Column(modifier = Modifier.weight(1f)) {
                                         Text(
                                             text = "Latest Blood Sugar",
-                                            fontSize = 13.sp,
+                                            fontSize = 12.sp,
                                             fontWeight = FontWeight.Medium,
-                                            color = Color(0xFF64748B)
+                                            color = Color(0xFF64748B),
+                                            maxLines = 1
                                         )
                                         Row(verticalAlignment = Alignment.Bottom) {
                                             Text(
                                                 text = if (uiState.latestReadingMgDl > 0) uiState.latestReadingMgDl.toString() else "--",
-                                                fontSize = 32.sp,
+                                                fontSize = 28.sp,
                                                 fontWeight = FontWeight.Bold,
                                                 color = Color(0xFF0F172A),
                                                 letterSpacing = (-0.5).sp
                                             )
-                                            Spacer(modifier = Modifier.width(4.dp))
+                                            Spacer(modifier = Modifier.width(3.dp))
                                             Text(
                                                 text = "mg/dL",
-                                                fontSize = 18.sp,
+                                                fontSize = 16.sp,
                                                 fontWeight = FontWeight.Medium,
                                                 color = Color(0xFF0F172A),
-                                                modifier = Modifier.padding(bottom = 3.dp)
+                                                modifier = Modifier.padding(bottom = 2.dp)
                                             )
                                         }
                                     }
                                 }
+
+                                Spacer(modifier = Modifier.width(8.dp))
 
                                 // Status Pill with diffused glow (e.g. "High" in Red, "In Range" in Green)
                                 val isHigh = uiState.latestStatus.equals("High", ignoreCase = true)
@@ -481,19 +489,19 @@ fun BloodSugarHistoryScreen(
                 ) {
                     StatBadge(
                         title = "Period Avg",
-                        value = "${uiState.averageSugarMgDl} mg/dL",
+                        value = if (uiState.averageSugarMgDl > 0) "${uiState.averageSugarMgDl} mg/dL" else "--",
                         color = Color(0xFF0F172A),
                         modifier = Modifier.weight(1f)
                     )
                     StatBadge(
                         title = "In Target",
-                        value = "${uiState.inRangePercent}%",
+                        value = if (uiState.averageSugarMgDl > 0) "${uiState.inRangePercent}%" else "--",
                         color = if (uiState.inRangePercent >= 70) Color(0xFF16A34A) else Color(0xFFD97706),
                         modifier = Modifier.weight(1f)
                     )
                     StatBadge(
                         title = "Peak Reading",
-                        value = "${uiState.highestReadingMgDl} mg/dL",
+                        value = if (uiState.highestReadingMgDl > 0) "${uiState.highestReadingMgDl} mg/dL" else "--",
                         color = Color(0xFFEF4444),
                         modifier = Modifier.weight(1f)
                     )
@@ -533,25 +541,77 @@ fun BloodSugarHistoryScreen(
                 Spacer(modifier = Modifier.height(10.dp))
             }
 
-            // 8. List of Chronological Sugar Day Entries
-            items(uiState.historyDays, key = { it.date }) { day ->
-                SugarDayEntryItem(
-                    day = day,
-                    thresholds = uiState.appSettings.thresholdSettings,
-                    onClick = {
-                        HapticFeedbackHelper.performClickHaptic(context)
-                        editingSugarDay = day
-                        editingSugarSlot = day.sugarEntries.keys.firstOrNull() ?: SugarSlot.BEFORE_BREAKFAST
-                    },
-                    onSlotClick = { slot ->
-                        HapticFeedbackHelper.performClickHaptic(context)
-                        editingSugarDay = day
-                        editingSugarSlot = slot
-                    },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 16.dp, vertical = 6.dp)
-                )
+            // 8. List of Chronological Sugar Day Entries or Empty Hint Card
+            if (uiState.historyDays.isEmpty()) {
+                item {
+                    Surface(
+                        shape = RoundedCornerShape(22.dp),
+                        color = Color.White,
+                        border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFFF1F5F9)),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp, vertical = 8.dp)
+                            .homeCardShadow(cornerRadius = 22.dp)
+                    ) {
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(24.dp),
+                            horizontalAlignment = Alignment.CenterHorizontally
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .size(52.dp)
+                                    .clip(CircleShape)
+                                    .background(Color(0xFFFEE2E2)),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Icon(
+                                    painter = painterResource(id = R.drawable.ic_blood_drop),
+                                    contentDescription = null,
+                                    tint = Color(0xFFEF4444),
+                                    modifier = Modifier.size(24.dp)
+                                )
+                            }
+                            Spacer(modifier = Modifier.height(14.dp))
+                            Text(
+                                text = "No glucose readings recorded yet",
+                                fontSize = 15.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = Color(0xFF0F172A),
+                                textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                            )
+                            Spacer(modifier = Modifier.height(4.dp))
+                            Text(
+                                text = "Log pre and post-meal glucose readings to track your glycemic stability and target compliance.",
+                                fontSize = 12.5.sp,
+                                color = Color(0xFF64748B),
+                                textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+                                lineHeight = 18.sp
+                            )
+                        }
+                    }
+                }
+            } else {
+                items(uiState.historyDays, key = { it.date }) { day ->
+                    SugarDayEntryItem(
+                        day = day,
+                        thresholds = uiState.appSettings.thresholdSettings,
+                        onClick = {
+                            HapticFeedbackHelper.performClickHaptic(context)
+                            editingSugarDay = day
+                            editingSugarSlot = day.sugarEntries.keys.firstOrNull() ?: SugarSlot.BEFORE_BREAKFAST
+                        },
+                        onSlotClick = { slot ->
+                            HapticFeedbackHelper.performClickHaptic(context)
+                            editingSugarDay = day
+                            editingSugarSlot = slot
+                        },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp, vertical = 6.dp)
+                    )
+                }
             }
 
             // Bottom Spacing for Floating Navigation Bar
@@ -633,6 +693,20 @@ fun SugarTrendCanvas(
     Canvas(modifier = modifier) {
         val w = size.width
         val h = size.height
+
+        if (points.isEmpty()) {
+            val padX = 18.dp.toPx()
+            val targetY = h * 0.5f
+            val dash = PathEffect.dashPathEffect(floatArrayOf(4.dp.toPx(), 4.dp.toPx()), 0f)
+            drawLine(
+                color = Color(0xFFEF4444).copy(alpha = 0.20f),
+                start = Offset(padX, targetY),
+                end = Offset(w - padX, targetY),
+                strokeWidth = 1.5.dp.toPx(),
+                pathEffect = dash
+            )
+            return@Canvas
+        }
 
         val horizontalPadding = 18.dp.toPx()
         val topPadding = 24.dp.toPx()

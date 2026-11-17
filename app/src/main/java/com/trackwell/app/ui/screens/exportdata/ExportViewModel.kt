@@ -6,8 +6,11 @@ import android.net.Uri
 import androidx.core.content.FileProvider
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.google.android.gms.auth.api.signin.GoogleSignIn
+import com.google.android.gms.common.api.ApiException
 import com.trackwell.app.data.preferences.AppSettings
 import com.trackwell.app.data.preferences.UserPreferences
+import com.trackwell.app.data.remote.GoogleDriveService
 import com.trackwell.app.domain.repository.DailyHealthRepository
 import com.trackwell.app.domain.util.DateTimeUtils
 import com.trackwell.app.notification.GoogleDriveBackupScheduler
@@ -50,7 +53,8 @@ class ExportViewModel @Inject constructor(
     private val dailyHealthRepository: DailyHealthRepository,
     private val userPreferences: UserPreferences,
     private val backupRestoreManager: BackupRestoreManager,
-    private val googleDriveBackupScheduler: GoogleDriveBackupScheduler
+    private val googleDriveBackupScheduler: GoogleDriveBackupScheduler,
+    val googleDriveService: GoogleDriveService
 ) : ViewModel() {
 
     val settings: StateFlow<AppSettings> = userPreferences.settingsFlow.stateIn(
@@ -67,6 +71,26 @@ class ExportViewModel @Inject constructor(
 
     private val _exportState = MutableStateFlow<ExportState>(ExportState.Idle)
     val exportState: StateFlow<ExportState> = _exportState.asStateFlow()
+
+    fun handleGoogleSignInResult(intent: Intent?) {
+        viewModelScope.launch {
+            try {
+                val task = GoogleSignIn.getSignedInAccountFromIntent(intent)
+                val account = task.getResult(ApiException::class.java)
+                if (account != null && account.email != null) {
+                    val email = account.email!!
+                    userPreferences.updateGoogleDriveAccount(email)
+                    userPreferences.updateGoogleDriveBackupEnabled(true)
+                    googleDriveBackupScheduler.scheduleDailyBackup(
+                        settings.value.copy(isGoogleDriveBackupEnabled = true, googleDriveAccount = email)
+                    )
+                    _restoreMessage.emit("Connected to Google Drive as $email")
+                }
+            } catch (e: Exception) {
+                _restoreMessage.emit("Google Sign-In failed: ${e.localizedMessage}")
+            }
+        }
+    }
 
     fun toggleGoogleDriveAutoBackup(enabled: Boolean) {
         viewModelScope.launch {
@@ -94,21 +118,54 @@ class ExportViewModel @Inject constructor(
 
     fun backupToGoogleDriveNow() {
         viewModelScope.launch {
-            _exportState.value = ExportState.Generating("Creating Google Drive Backup...")
+            _exportState.value = ExportState.Generating("Creating & Uploading Google Drive Backup...")
             try {
                 val backupFile = backupRestoreManager.createEncryptedBackup(context)
+                val uploadResult = googleDriveService.uploadBackupFile(backupFile)
                 val now = System.currentTimeMillis()
-                val status = "Synced to ${settings.value.googleDriveAccount} (${backupFile.name})"
-                userPreferences.recordGoogleDriveBackupResult(now, status)
 
-                _exportState.value = ExportState.ReadyToShare(
-                    file = backupFile,
-                    mimeType = "application/octet-stream",
-                    title = "Google Drive Cloud Backup: ${backupFile.name}"
-                )
-                _restoreMessage.emit("Backup saved! Choose Google Drive from the share sheet to upload instantly.")
+                if (uploadResult.isSuccess) {
+                    val metadata = uploadResult.getOrNull()
+                    val account = settings.value.googleDriveAccount.ifBlank {
+                        googleDriveService.getLastSignedInAccount()?.email ?: "Google Drive"
+                    }
+                    val status = "Synced to $account (${metadata?.fileName ?: backupFile.name})"
+                    userPreferences.recordGoogleDriveBackupResult(now, status)
+                    _exportState.value = ExportState.Idle
+                    _restoreMessage.emit("Successfully backed up to Google Drive AppData folder!")
+                } else {
+                    val error = uploadResult.exceptionOrNull()?.localizedMessage ?: "Upload failed"
+                    _exportState.value = ExportState.Error("Cloud upload failed: $error")
+                }
             } catch (e: Exception) {
                 _exportState.value = ExportState.Error("Google Drive backup failed: ${e.localizedMessage}")
+            }
+        }
+    }
+
+    fun restoreFromGoogleDriveCloud() {
+        viewModelScope.launch {
+            _exportState.value = ExportState.Generating("Downloading backup from Google Drive...")
+            try {
+                val tempFile = File(context.cacheDir, "drive_restore.twbackup")
+                val downloadResult = googleDriveService.downloadBackupFile(tempFile)
+                if (downloadResult.isSuccess) {
+                    _exportState.value = ExportState.Generating("Decrypting & Restoring records...")
+                    val restoreResult = backupRestoreManager.restoreEncryptedBackup(tempFile)
+                    if (restoreResult.isSuccess) {
+                        val count = restoreResult.getOrNull() ?: 0
+                        _exportState.value = ExportState.Idle
+                        _restoreMessage.emit("Successfully restored $count records from Google Drive!")
+                    } else {
+                        val error = restoreResult.exceptionOrNull()?.localizedMessage ?: "Restore failed"
+                        _exportState.value = ExportState.Error("Restore failed: $error")
+                    }
+                } else {
+                    val error = downloadResult.exceptionOrNull()?.localizedMessage ?: "Download failed"
+                    _exportState.value = ExportState.Error("Could not download backup from Google Drive: $error")
+                }
+            } catch (e: Exception) {
+                _exportState.value = ExportState.Error("Google Drive restore error: ${e.localizedMessage}")
             }
         }
     }

@@ -32,6 +32,9 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -45,6 +48,7 @@ import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.text.drawText
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.rememberTextMeasurer
@@ -69,11 +73,13 @@ fun FluidHistoryScreen(
     viewModel: FluidHistoryViewModel,
     onNavigateUp: () -> Unit = {},
     onNavigateToDayDetail: (String) -> Unit,
+    showBackButton: Boolean = false,
     modifier: Modifier = Modifier
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val context = LocalContext.current
     val statusBarInset = WindowInsets.statusBars.asPaddingValues().calculateTopPadding()
+    var showFilters by remember { mutableStateOf(false) }
 
     Box(
         modifier = modifier
@@ -99,142 +105,170 @@ fun FluidHistoryScreen(
                 Spacer(modifier = Modifier.height(statusBarInset + 8.dp))
             }
 
-            // 2. Top App Bar (Back Button + Title + Subtitle - Redundant Filter Removed)
+            // 2. Top App Bar (Title + Optional Back Button + Filter Toggle)
             item {
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(horizontal = 20.dp, vertical = 8.dp),
-                    verticalAlignment = Alignment.CenterVertically
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween
                 ) {
-                    // Elevated Circular Claymorphic Back Button
-                    Surface(
-                        onClick = {
-                            HapticFeedbackHelper.performClickHaptic(context)
-                            onNavigateUp()
-                        },
-                        modifier = Modifier
-                            .size(42.dp)
-                            .shadow(
-                                elevation = 6.dp,
-                                shape = CircleShape,
-                                spotColor = Color(0x404A6282),
-                                ambientColor = Color(0x2864748B)
-                            ),
-                        shape = CircleShape,
-                        color = Color.White,
-                        border = BorderStroke(1.dp, Color(0xFFF1F5F9))
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.weight(1f)
                     ) {
-                        Box(contentAlignment = Alignment.Center) {
-                            Icon(
-                                painter = painterResource(id = R.drawable.ic_chevron_left),
-                                contentDescription = "Back",
-                                tint = Color(0xFF0F172A),
-                                modifier = Modifier.size(16.dp)
-                            )
-                        }
-                    }
-
-                    Spacer(modifier = Modifier.width(14.dp))
-
-                    Column {
-                        Text(
-                            text = "Fluid Balance History",
-                            fontSize = 22.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = Color(0xFF0F172A),
-                            letterSpacing = (-0.4).sp
-                        )
-                        Spacer(modifier = Modifier.height(2.dp))
-                        Text(
-                            text = "Intake & Urine Output Analytics",
-                            fontSize = 13.sp,
-                            fontWeight = FontWeight.Normal,
-                            color = Color(0xFF64748B)
-                        )
-                    }
-                }
-            }
-
-            item {
-                Spacer(modifier = Modifier.height(10.dp))
-            }
-
-            // 3. Time Range Filter Chips Carousel (7D, 14D, 30D, 90D, All Time)
-            item {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .horizontalScroll(rememberScrollState())
-                        .padding(horizontal = 16.dp),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    FluidTimeRange.entries.filter { it != FluidTimeRange.CUSTOM }.forEach { range ->
-                        val isSelected = range == uiState.selectedRange
-                        val bg = if (isSelected) Color(0xFFE0F2FE) else Color.White
-                        val borderCol = if (isSelected) Color(0xFF7DD3FC) else Color(0xFFE2E8F0)
-                        val textCol = if (isSelected) Color(0xFF0284C7) else Color(0xFF64748B)
-
-                        Box(
-                            modifier = Modifier
-                                .clip(RoundedCornerShape(20.dp))
-                                .background(bg)
-                                .border(width = 1.dp, color = borderCol, shape = RoundedCornerShape(20.dp))
-                                .clickable {
-                                    HapticFeedbackHelper.performTickHaptic(context)
-                                    viewModel.selectRange(range)
+                        if (showBackButton) {
+                            Surface(
+                                onClick = {
+                                    HapticFeedbackHelper.performClickHaptic(context)
+                                    onNavigateUp()
+                                },
+                                modifier = Modifier
+                                    .size(42.dp)
+                                    .shadow(
+                                        elevation = 6.dp,
+                                        shape = CircleShape,
+                                        spotColor = Color(0x404A6282),
+                                        ambientColor = Color(0x2864748B)
+                                    ),
+                                shape = CircleShape,
+                                color = Color.White,
+                                border = BorderStroke(1.dp, Color(0xFFF1F5F9))
+                            ) {
+                                Box(contentAlignment = Alignment.Center) {
+                                    Icon(
+                                        painter = painterResource(id = R.drawable.ic_chevron_left),
+                                        contentDescription = "Back",
+                                        tint = Color(0xFF0F172A),
+                                        modifier = Modifier.size(16.dp)
+                                    )
                                 }
-                                .padding(horizontal = 16.dp, vertical = 8.dp),
-                            contentAlignment = Alignment.Center
-                        ) {
+                            }
+
+                            Spacer(modifier = Modifier.width(14.dp))
+                        }
+
+                        Column {
                             Text(
-                                text = range.label,
+                                text = "Fluid Balance History",
+                                fontSize = 22.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = Color(0xFF0F172A),
+                                letterSpacing = (-0.4).sp
+                            )
+                            Spacer(modifier = Modifier.height(2.dp))
+                            Text(
+                                text = "Intake & Urine Output Analytics",
                                 fontSize = 13.sp,
-                                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
-                                color = textCol
+                                fontWeight = FontWeight.Normal,
+                                color = Color(0xFF64748B)
+                            )
+                        }
+                    }
+
+                    Surface(
+                        onClick = { showFilters = !showFilters },
+                        shape = RoundedCornerShape(14.dp),
+                        color = if (showFilters) Color(0xFFE0F2FE) else Color.White,
+                        border = BorderStroke(1.dp, if (showFilters) Color(0xFF7DD3FC) else Color(0xFFE2E8F0))
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                text = "Filter 📅",
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = if (showFilters) Color(0xFF0284C7) else Color(0xFF475569)
                             )
                         }
                     }
                 }
             }
 
-            item {
-                Spacer(modifier = Modifier.height(10.dp))
-            }
+            if (showFilters) {
+                item {
+                    Spacer(modifier = Modifier.height(10.dp))
+                }
 
-            // 4. Stream Filter Chips (Net Balance, Intake Only, Urine Output Only)
-            item {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .horizontalScroll(rememberScrollState())
-                        .padding(horizontal = 16.dp),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    FluidStreamFilter.entries.forEach { filter ->
-                        val isSelected = filter == uiState.selectedFilter
-                        val bg = if (isSelected) Color(0xFFEFF6FF) else Color(0xFFF8FAFC)
-                        val borderCol = if (isSelected) Color(0xFF93C5FD) else Color(0xFFE2E8F0)
-                        val textCol = if (isSelected) Color(0xFF2563EB) else Color(0xFF64748B)
+                // 3. Time Range Filter Chips Carousel (7D, 14D, 30D, 90D, All Time)
+                item {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .horizontalScroll(rememberScrollState())
+                            .padding(horizontal = 16.dp),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        FluidTimeRange.entries.filter { it != FluidTimeRange.CUSTOM }.forEach { range ->
+                            val isSelected = range == uiState.selectedRange
+                            val bg = if (isSelected) Color(0xFFE0F2FE) else Color.White
+                            val borderCol = if (isSelected) Color(0xFF7DD3FC) else Color(0xFFE2E8F0)
+                            val textCol = if (isSelected) Color(0xFF0284C7) else Color(0xFF64748B)
 
-                        Box(
-                            modifier = Modifier
-                                .clip(RoundedCornerShape(16.dp))
-                                .background(bg)
-                                .border(width = 1.dp, color = borderCol, shape = RoundedCornerShape(16.dp))
-                                .clickable {
-                                    HapticFeedbackHelper.performTickHaptic(context)
-                                    viewModel.selectFilter(filter)
-                                }
-                                .padding(horizontal = 14.dp, vertical = 6.dp),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Text(
-                                text = filter.label,
-                                fontSize = 12.sp,
-                                fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Normal,
-                                color = textCol
-                            )
+                            Box(
+                                modifier = Modifier
+                                    .clip(RoundedCornerShape(20.dp))
+                                    .background(bg)
+                                    .border(width = 1.dp, color = borderCol, shape = RoundedCornerShape(20.dp))
+                                    .clickable {
+                                        HapticFeedbackHelper.performTickHaptic(context)
+                                        viewModel.selectRange(range)
+                                    }
+                                    .padding(horizontal = 16.dp, vertical = 8.dp),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Text(
+                                    text = range.label,
+                                    fontSize = 13.sp,
+                                    fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
+                                    color = textCol
+                                )
+                            }
+                        }
+                    }
+                }
+
+                item {
+                    Spacer(modifier = Modifier.height(10.dp))
+                }
+
+                // 4. Stream Filter Chips (Net Balance, Intake Only, Urine Output Only)
+                item {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .horizontalScroll(rememberScrollState())
+                            .padding(horizontal = 16.dp),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        FluidStreamFilter.entries.forEach { filter ->
+                            val isSelected = filter == uiState.selectedFilter
+                            val bg = if (isSelected) Color(0xFFEFF6FF) else Color(0xFFF8FAFC)
+                            val borderCol = if (isSelected) Color(0xFF93C5FD) else Color(0xFFE2E8F0)
+                            val textCol = if (isSelected) Color(0xFF2563EB) else Color(0xFF64748B)
+
+                            Box(
+                                modifier = Modifier
+                                    .clip(RoundedCornerShape(20.dp))
+                                    .background(bg)
+                                    .border(width = 1.dp, color = borderCol, shape = RoundedCornerShape(20.dp))
+                                    .clickable {
+                                        HapticFeedbackHelper.performTickHaptic(context)
+                                        viewModel.selectFilter(filter)
+                                    }
+                                    .padding(horizontal = 14.dp, vertical = 7.dp),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Text(
+                                    text = filter.label,
+                                    fontSize = 12.sp,
+                                    fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
+                                    color = textCol
+                                )
+                            }
                         }
                     }
                 }
@@ -305,11 +339,14 @@ fun FluidHistoryScreen(
                                 verticalAlignment = Alignment.CenterVertically,
                                 horizontalArrangement = Arrangement.SpaceBetween
                             ) {
-                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    modifier = Modifier.weight(1f)
+                                ) {
                                     Box(
                                         modifier = Modifier
-                                            .size(42.dp)
-                                            .clip(RoundedCornerShape(14.dp))
+                                            .size(40.dp)
+                                            .clip(RoundedCornerShape(12.dp))
                                             .background(
                                                 if (currentFilter == FluidStreamFilter.URINE_ONLY) Color(0xFFFEF3C7)
                                                 else Color(0xFFE0F7FA)
@@ -317,38 +354,42 @@ fun FluidHistoryScreen(
                                         contentAlignment = Alignment.Center
                                     ) {
                                         if (currentFilter == FluidStreamFilter.URINE_ONLY) {
-                                            Icon3DUrineDrop(size = 22.dp)
+                                            Icon3DUrineDrop(size = 20.dp)
                                         } else {
-                                            Icon3DWaterDrop(size = 22.dp)
+                                            Icon3DWaterDrop(size = 20.dp)
                                         }
                                     }
-                                    Spacer(modifier = Modifier.width(12.dp))
-                                    Column {
+                                    Spacer(modifier = Modifier.width(10.dp))
+                                    Column(modifier = Modifier.weight(1f)) {
                                         Text(
                                             text = heroTitle,
-                                            fontSize = 13.sp,
+                                            fontSize = 12.sp,
                                             fontWeight = FontWeight.Medium,
-                                            color = Color(0xFF64748B)
+                                            color = Color(0xFF64748B),
+                                            maxLines = 1,
+                                            overflow = TextOverflow.Ellipsis
                                         )
                                         Row(verticalAlignment = Alignment.Bottom) {
                                             Text(
                                                 text = heroValue,
-                                                fontSize = 32.sp,
+                                                fontSize = 28.sp,
                                                 fontWeight = FontWeight.Bold,
                                                 color = Color(0xFF0F172A),
                                                 letterSpacing = (-0.5).sp
                                             )
-                                            Spacer(modifier = Modifier.width(4.dp))
+                                            Spacer(modifier = Modifier.width(3.dp))
                                             Text(
                                                 text = "ml",
-                                                fontSize = 18.sp,
+                                                fontSize = 16.sp,
                                                 fontWeight = FontWeight.Medium,
                                                 color = Color(0xFF0F172A),
-                                                modifier = Modifier.padding(bottom = 3.dp)
+                                                modifier = Modifier.padding(bottom = 2.dp)
                                             )
                                         }
                                     }
                                 }
+
+                                Spacer(modifier = Modifier.width(8.dp))
 
                                 // Status Pill
                                 when (currentFilter) {
@@ -356,20 +397,21 @@ fun FluidHistoryScreen(
                                         Box(
                                             modifier = Modifier
                                                 .shadow(
-                                                    elevation = 4.dp,
-                                                    shape = RoundedCornerShape(16.dp),
+                                                    elevation = 2.dp,
+                                                    shape = RoundedCornerShape(14.dp),
                                                     spotColor = if (isOptimal) Color(0x3316A34A) else Color(0x33D97706),
                                                     ambientColor = if (isOptimal) Color(0x1A16A34A) else Color(0x1AD97706)
                                                 )
-                                                .clip(RoundedCornerShape(16.dp))
+                                                .clip(RoundedCornerShape(14.dp))
                                                 .background(if (isOptimal) Color(0xFFDCFCE7) else Color(0xFFFEF3C7))
-                                                .padding(horizontal = 14.dp, vertical = 6.dp)
+                                                .padding(horizontal = 10.dp, vertical = 5.dp)
                                         ) {
                                             Text(
                                                 text = uiState.statusLabel,
-                                                fontSize = 13.sp,
+                                                fontSize = 11.5.sp,
                                                 fontWeight = FontWeight.Bold,
-                                                color = if (isOptimal) Color(0xFF16A34A) else Color(0xFFD97706)
+                                                color = if (isOptimal) Color(0xFF16A34A) else Color(0xFFD97706),
+                                                maxLines = 1
                                             )
                                         }
                                     }
@@ -377,15 +419,16 @@ fun FluidHistoryScreen(
                                         val percent = (uiState.currentIntakeMl.toFloat() / uiState.intakeTargetMl.coerceAtLeast(1) * 100).toInt()
                                         Box(
                                             modifier = Modifier
-                                                .clip(RoundedCornerShape(16.dp))
+                                                .clip(RoundedCornerShape(14.dp))
                                                 .background(Color(0xFFE0F2FE))
-                                                .padding(horizontal = 14.dp, vertical = 6.dp)
+                                                .padding(horizontal = 10.dp, vertical = 5.dp)
                                         ) {
                                             Text(
-                                                text = "$percent% of Target",
-                                                fontSize = 12.sp,
+                                                text = "$percent% Target",
+                                                fontSize = 11.5.sp,
                                                 fontWeight = FontWeight.Bold,
-                                                color = Color(0xFF0284C7)
+                                                color = Color(0xFF0284C7),
+                                                maxLines = 1
                                             )
                                         }
                                     }
@@ -393,15 +436,16 @@ fun FluidHistoryScreen(
                                         val percent = (uiState.currentUrineMl.toFloat() / uiState.urineTargetMl.coerceAtLeast(1) * 100).toInt()
                                         Box(
                                             modifier = Modifier
-                                                .clip(RoundedCornerShape(16.dp))
+                                                .clip(RoundedCornerShape(14.dp))
                                                 .background(Color(0xFFFEF3C7))
-                                                .padding(horizontal = 14.dp, vertical = 6.dp)
+                                                .padding(horizontal = 10.dp, vertical = 5.dp)
                                         ) {
                                             Text(
-                                                text = "$percent% of Target",
-                                                fontSize = 12.sp,
+                                                text = "$percent% Target",
+                                                fontSize = 11.5.sp,
                                                 fontWeight = FontWeight.Bold,
-                                                color = Color(0xFFD97706)
+                                                color = Color(0xFFD97706),
+                                                maxLines = 1
                                             )
                                         }
                                     }
@@ -614,20 +658,67 @@ fun FluidHistoryScreen(
                 Spacer(modifier = Modifier.height(8.dp))
             }
 
-            // 8. Daily Cards - Exclusively Hydro-Pill UI (Image 5)
-            items(uiState.historyDays, key = { it.date }) { day ->
-                FluidDayCardHydroPill(
-                    day = day,
-                    intakeTarget = uiState.intakeTargetMl,
-                    urineTarget = uiState.urineTargetMl,
-                    onClick = {
-                        HapticFeedbackHelper.performClickHaptic(context)
-                        onNavigateToDayDetail(day.date)
-                    },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 16.dp, vertical = 6.dp)
-                )
+            // 8. Daily Cards or Empty State Hint Card
+            if (uiState.historyDays.isEmpty()) {
+                item {
+                    Surface(
+                        shape = RoundedCornerShape(22.dp),
+                        color = Color.White,
+                        border = BorderStroke(1.dp, Color(0xFFF1F5F9)),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp, vertical = 8.dp)
+                            .homeCardShadow(cornerRadius = 22.dp)
+                    ) {
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(24.dp),
+                            horizontalAlignment = Alignment.CenterHorizontally
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .size(52.dp)
+                                    .clip(CircleShape)
+                                    .background(Color(0xFFE0F7FA)),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Icon3DWaterDrop(size = 30.dp)
+                            }
+                            Spacer(modifier = Modifier.height(14.dp))
+                            Text(
+                                text = "No fluid logs recorded yet",
+                                fontSize = 15.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = Color(0xFF0F172A),
+                                textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                            )
+                            Spacer(modifier = Modifier.height(4.dp))
+                            Text(
+                                text = "Log your daily water intake and urine output on the home dashboard to track your renal balance.",
+                                fontSize = 12.5.sp,
+                                color = Color(0xFF64748B),
+                                textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+                                lineHeight = 18.sp
+                            )
+                        }
+                    }
+                }
+            } else {
+                items(uiState.historyDays, key = { it.date }) { day ->
+                    FluidDayCardHydroPill(
+                        day = day,
+                        intakeTarget = uiState.intakeTargetMl,
+                        urineTarget = uiState.urineTargetMl,
+                        onClick = {
+                            HapticFeedbackHelper.performClickHaptic(context)
+                            onNavigateToDayDetail(day.date)
+                        },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp, vertical = 6.dp)
+                    )
+                }
             }
 
             // Bottom Spacing for Floating Navigation Bar
@@ -654,13 +745,65 @@ fun FluidTrendCanvas(
 ) {
     val textMeasurer = rememberTextMeasurer()
 
-    if (points.isEmpty()) {
+    if (points.isEmpty() || points.all { it.intakeMl == 0 && it.urineMl == 0 }) {
         Box(modifier = modifier, contentAlignment = Alignment.Center) {
-            Text(
-                text = "No fluid records in this range",
-                color = Color(0xFF94A3B8),
-                fontSize = 13.sp
-            )
+            Canvas(modifier = Modifier.fillMaxSize()) {
+                val w = size.width
+                val h = size.height
+                val padX = 16.dp.toPx()
+                val padBottom = 24.dp.toPx()
+                val usableW = w - padX * 2
+                val usableH = h - 44.dp.toPx()
+
+                // Faint target line
+                val targetY = 24.dp.toPx() + usableH * 0.4f
+                val dash = PathEffect.dashPathEffect(floatArrayOf(4.dp.toPx(), 4.dp.toPx()), 0f)
+                drawLine(
+                    color = Color(0xFF0284C7).copy(alpha = 0.15f),
+                    start = Offset(padX, targetY),
+                    end = Offset(w - padX, targetY),
+                    strokeWidth = 1.dp.toPx(),
+                    pathEffect = dash
+                )
+
+                // 7 Un-obscured Light Placeholder Bars
+                val placeholderRatios = listOf(0.35f, 0.50f, 0.40f, 0.65f, 0.45f, 0.70f, 0.55f)
+                val dayLabels = listOf("Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun")
+                val slotW = usableW / 7f
+                val barW = (slotW * 0.40f).coerceIn(8.dp.toPx(), 18.dp.toPx())
+
+                placeholderRatios.forEachIndexed { idx, ratio ->
+                    val centerX = padX + idx * slotW + slotW / 2f
+                    val barH = ratio * usableH
+                    val barLeft = centerX - barW / 2f
+
+                    drawRoundRect(
+                        color = Color(0xFF0284C7).copy(alpha = 0.15f),
+                        topLeft = Offset(barLeft, h - padBottom - barH),
+                        size = Size(barW, barH),
+                        cornerRadius = CornerRadius(4.dp.toPx(), 4.dp.toPx())
+                    )
+
+                    val labelLayout = textMeasurer.measure(
+                        text = dayLabels[idx],
+                        style = TextStyle(fontSize = 10.sp, color = Color(0xFFCBD5E1))
+                    )
+                    drawText(
+                        textLayoutResult = labelLayout,
+                        topLeft = Offset(centerX - labelLayout.size.width / 2f, h - padBottom + 4.dp.toPx())
+                    )
+                }
+
+                // Un-obscured top caption text inside canvas
+                val noteLayout = textMeasurer.measure(
+                    text = "Preview Trend (No logs recorded yet)",
+                    style = TextStyle(fontSize = 10.5.sp, fontWeight = FontWeight.SemiBold, color = Color(0xFF94A3B8))
+                )
+                drawText(
+                    textLayoutResult = noteLayout,
+                    topLeft = Offset((w - noteLayout.size.width) / 2f, 4.dp.toPx())
+                )
+            }
         }
         return
     }
@@ -947,7 +1090,10 @@ fun FluidDayCardHydroPill(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
+                Row(
+                    modifier = Modifier.weight(1f),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
                     Box(
                         modifier = Modifier
                             .size(38.dp)
@@ -960,22 +1106,28 @@ fun FluidDayCardHydroPill(
 
                     Spacer(modifier = Modifier.width(12.dp))
 
-                    Column {
+                    Column(modifier = Modifier.weight(1f)) {
                         Text(
                             text = dateFormatted,
                             fontSize = 15.sp,
                             fontWeight = FontWeight.Bold,
-                            color = Color(0xFF0F172A)
+                            color = Color(0xFF0F172A),
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
                         )
                         Spacer(modifier = Modifier.height(2.dp))
                         Text(
                             text = "${day.intakeEntries.size} intake • ${day.urineEntries.size} urine logs",
                             fontSize = 11.sp,
                             fontWeight = FontWeight.Normal,
-                            color = Color(0xFF64748B)
+                            color = Color(0xFF64748B),
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
                         )
                     }
                 }
+
+                Spacer(modifier = Modifier.width(8.dp))
 
                 Surface(
                     shape = RoundedCornerShape(14.dp),
@@ -990,14 +1142,17 @@ fun FluidDayCardHydroPill(
                             text = "${if (balanceMl > 0) "+" else ""}$balanceMl ml",
                             fontSize = 12.sp,
                             fontWeight = FontWeight.ExtraBold,
-                            color = if (isOptimal) Color(0xFF16A34A) else Color(0xFFD97706)
+                            color = if (isOptimal) Color(0xFF16A34A) else Color(0xFFD97706),
+                            maxLines = 1,
+                            softWrap = false
                         )
                         Spacer(modifier = Modifier.width(3.dp))
                         Text(
                             text = "Net",
                             fontSize = 10.sp,
                             fontWeight = FontWeight.SemiBold,
-                            color = if (isOptimal) Color(0xFF15803D) else Color(0xFFB45309)
+                            color = if (isOptimal) Color(0xFF15803D) else Color(0xFFB45309),
+                            maxLines = 1
                         )
                         Spacer(modifier = Modifier.width(4.dp))
                         Icon(

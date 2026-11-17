@@ -4,7 +4,7 @@ kotlin = "2.0.21"
 coreKtx = "1.13.1"
 lifecycleRuntimeKtx = "2.8.0"
 activityCompose = "1.9.0"
-composeBom = "2024.05.00"
+composeBom = "2024.08.00"
 navigationCompose = "2.7.7"
 room = "2.6.1"
 hilt = "2.51.1"
@@ -20,6 +20,10 @@ datastore = "1.1.1"
 securityCrypto = "1.1.0-alpha06"
 gson = "2.10.1"
 okhttp = "4.12.0"
+playServicesAuth = "21.2.0"
+googleApiClientAndroid = "2.6.0"
+googleApiServicesDrive = "v3-rev20230822-2.0.0"
+googleHttpClientGson = "1.44.1"
 junit = "4.13.2"
 androidxTestJunit = "1.1.5"
 espressoCore = "3.5.1"
@@ -73,6 +77,12 @@ google-mlkit-text-recognition = { group = "com.google.mlkit", name = "text-recog
 # OkHttp & Gson
 okhttp = { group = "com.squareup.okhttp3", name = "okhttp", version.ref = "okhttp" }
 gson = { group = "com.google.code.gson", name = "gson", version.ref = "gson" }
+
+# Google Play Services & Google Drive API
+google-play-services-auth = { group = "com.google.android.gms", name = "play-services-auth", version.ref = "playServicesAuth" }
+google-api-client-android = { group = "com.google.api-client", name = "google-api-client-android", version.ref = "googleApiClientAndroid" }
+google-api-services-drive = { group = "com.google.apis", name = "google-api-services-drive", version.ref = "googleApiServicesDrive" }
+google-http-client-gson = { group = "com.google.http-client", name = "google-http-client-gson", version.ref = "googleHttpClientGson" }
 
 # Coroutines
 kotlinx-coroutines-android = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-android", version.ref = "coroutines" }

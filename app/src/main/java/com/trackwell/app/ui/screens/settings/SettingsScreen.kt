@@ -75,6 +75,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.trackwell.app.R
@@ -93,6 +94,7 @@ fun SettingsScreen(
     viewModel: SettingsViewModel,
     onNavigateToImport: () -> Unit,
     onNavigateToExport: () -> Unit,
+    onNavigateToCareProfile: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     val settings by viewModel.settings.collectAsState()
@@ -101,12 +103,10 @@ fun SettingsScreen(
     val statusBarInset = WindowInsets.statusBars.asPaddingValues().calculateTopPadding()
 
     var showThresholdDialog by remember { mutableStateOf(false) }
-    var showNameDialog by remember { mutableStateOf(false) }
     var showGeminiDialog by remember { mutableStateOf(false) }
     var showReseedDialog by remember { mutableStateOf(false) }
     var showTargetDialog by remember { mutableStateOf(false) }
     var showPresetsDialog by remember { mutableStateOf(false) }
-    var showProfileDialog by remember { mutableStateOf(false) }
 
     LaunchedEffect(Unit) {
         viewModel.seedMessage.collect { msg ->
@@ -177,26 +177,21 @@ fun SettingsScreen(
                     }
                 }
 
-                // 2. Patient Profile Hero Card (3D Claymorphic)
+                // 2. Profile Card (3D Claymorphic)
                 item {
                     ClaymorphicProfileCard(
-                        patientName = settings.patientName.ifBlank { "Patient" },
-                        subtitle = "Transplant Recipient • Week ${DateTimeUtils.calculateWeeksPostTx(settings.transplantDate)} Post-Op",
-                        bloodGroup = settings.bloodGroup,
+                        userName = if (settings.patientName.isNotBlank()) settings.patientName else "User Profile",
+                        subtitle = if (settings.healthContext.isNotBlank()) settings.healthContext else "Tap to edit profile & care details",
                         onEditProfile = {
                             HapticFeedbackHelper.performClickHaptic(context)
-                            showProfileDialog = true
-                        },
-                        onEditName = {
-                            HapticFeedbackHelper.performClickHaptic(context)
-                            showNameDialog = true
+                            onNavigateToCareProfile()
                         }
                     )
                 }
 
-                // 3. Section: Clinical Targets
+                // 3. Section: Targets & Goals
                 item {
-                    ClaymorphicSectionHeader(title = "Clinical Targets & Goals")
+                    ClaymorphicSectionHeader(title = "Targets & Goals")
                     Spacer(modifier = Modifier.height(8.dp))
                     ClaymorphicCardGroup {
                         val t = settings.thresholdSettings
@@ -379,31 +374,6 @@ fun SettingsScreen(
         )
     }
 
-    if (showProfileDialog) {
-        ClaymorphicEditTransplantProfileDialog(
-            transplantDate = settings.transplantDate,
-            bloodGroup = settings.bloodGroup,
-            nephrologistContact = settings.nephrologistContact,
-            emergencyNotes = settings.emergencyNotes,
-            onDismiss = { showProfileDialog = false },
-            onConfirm = { date, bg, doctor, notes ->
-                viewModel.updateTransplantProfile(date, bg, doctor, notes)
-                showProfileDialog = false
-            }
-        )
-    }
-
-    if (showNameDialog) {
-        ClaymorphicEditPatientNameDialog(
-            currentName = settings.patientName,
-            onDismiss = { showNameDialog = false },
-            onConfirm = { name ->
-                viewModel.updatePatientName(name)
-                showNameDialog = false
-            }
-        )
-    }
-
     if (showGeminiDialog) {
         ClaymorphicEditGeminiKeyDialog(
             currentKey = settings.geminiApiKey,
@@ -432,11 +402,9 @@ fun SettingsScreen(
 
 @Composable
 fun ClaymorphicProfileCard(
-    patientName: String,
+    userName: String,
     subtitle: String,
-    bloodGroup: String,
-    onEditProfile: () -> Unit,
-    onEditName: () -> Unit
+    onEditProfile: () -> Unit
 ) {
     Surface(
         onClick = onEditProfile,
@@ -456,7 +424,7 @@ fun ClaymorphicProfileCard(
             // 3D Avatar Circle
             Box(
                 modifier = Modifier
-                    .size(56.dp)
+                    .size(52.dp)
                     .shadow(elevation = 6.dp, shape = CircleShape, spotColor = Color(0x300284C7))
                     .clip(CircleShape)
                     .background(
@@ -468,10 +436,10 @@ fun ClaymorphicProfileCard(
                 contentAlignment = Alignment.Center
             ) {
                 Text(
-                    text = patientName.take(2).uppercase(),
+                    text = if (userName.isNotBlank()) userName.take(2).uppercase() else "ME",
                     style = MaterialTheme.typography.titleMedium.copy(
                         fontWeight = FontWeight.Black,
-                        fontSize = 18.sp,
+                        fontSize = 17.sp,
                         color = Color(0xFF0369A1)
                     )
                 )
@@ -480,79 +448,37 @@ fun ClaymorphicProfileCard(
             Spacer(modifier = Modifier.width(14.dp))
 
             Column(modifier = Modifier.weight(1f)) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text(
-                        text = patientName,
-                        style = MaterialTheme.typography.titleMedium.copy(
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 18.sp,
-                            letterSpacing = (-0.3).sp
-                        ),
-                        color = Color(0xFF0F172A)
-                    )
-                    Spacer(modifier = Modifier.width(6.dp))
-                    Box(
-                        modifier = Modifier
-                            .size(24.dp)
-                            .clip(CircleShape)
-                            .background(Color(0xFFF1F5F9))
-                            .clickable { onEditName() },
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Edit,
-                            contentDescription = "Edit name",
-                            tint = Color(0xFF64748B),
-                            modifier = Modifier.size(13.dp)
-                        )
-                    }
-                }
+                Text(
+                    text = userName,
+                    style = MaterialTheme.typography.titleMedium.copy(
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 17.sp,
+                        letterSpacing = (-0.3).sp
+                    ),
+                    color = Color(0xFF334155),
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
                 Spacer(modifier = Modifier.height(3.dp))
                 Text(
                     text = subtitle,
                     style = MaterialTheme.typography.bodySmall.copy(
                         fontSize = 12.sp,
                         color = Color(0xFF64748B)
-                    )
+                    ),
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
                 )
-                if (bloodGroup.isNotBlank()) {
-                    Spacer(modifier = Modifier.height(6.dp))
-                    Box(
-                        modifier = Modifier
-                            .clip(RoundedCornerShape(8.dp))
-                            .background(Color(0xFFFEE2E2))
-                            .padding(horizontal = 8.dp, vertical = 2.dp)
-                    ) {
-                        Text(
-                            text = "🩸 Blood Group: $bloodGroup",
-                            style = MaterialTheme.typography.labelSmall.copy(
-                                fontSize = 11.sp,
-                                color = Color(0xFFDC2626),
-                                fontWeight = FontWeight.Bold
-                            )
-                        )
-                    }
-                }
             }
 
             Spacer(modifier = Modifier.width(8.dp))
 
-            // 3D Elevated Chevron Action Pill
-            Box(
-                modifier = Modifier
-                    .size(34.dp)
-                    .shadow(elevation = 3.dp, shape = CircleShape, spotColor = Color(0x20000000))
-                    .clip(CircleShape)
-                    .background(Color(0xFFF8FAFC)),
-                contentAlignment = Alignment.Center
-            ) {
-                Icon(
-                    painter = painterResource(id = R.drawable.ic_chevron_right),
-                    contentDescription = "View emergency profile",
-                    tint = Color(0xFF64748B),
-                    modifier = Modifier.size(14.dp)
-                )
-            }
+            Icon(
+                painter = painterResource(id = R.drawable.ic_chevron_right),
+                contentDescription = "Edit Profile",
+                tint = Color(0xFF94A3B8),
+                modifier = Modifier.size(13.dp)
+            )
         }
     }
 }
@@ -621,7 +547,7 @@ fun ClaymorphicSettingsRow(
     ) {
         Row(
             verticalAlignment = Alignment.CenterVertically,
-            modifier = Modifier.weight(1f, fill = false)
+            modifier = Modifier.weight(1f)
         ) {
             Box(
                 modifier = Modifier
@@ -645,9 +571,14 @@ fun ClaymorphicSettingsRow(
                     fontSize = 15.sp,
                     fontWeight = FontWeight.SemiBold
                 ),
-                color = Color(0xFF0F172A)
+                color = Color(0xFF334155),
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.weight(1f)
             )
         }
+
+        Spacer(modifier = Modifier.width(8.dp))
 
         Row(verticalAlignment = Alignment.CenterVertically) {
             if (value.isNotBlank()) {
@@ -658,7 +589,8 @@ fun ClaymorphicSettingsRow(
                         fontWeight = FontWeight.Medium,
                         color = Color(0xFF64748B)
                     ),
-                    maxLines = 1
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
                 )
                 Spacer(modifier = Modifier.width(8.dp))
             }
@@ -716,7 +648,7 @@ fun ClaymorphicSwitchRow(
                         fontSize = 15.sp,
                         fontWeight = FontWeight.SemiBold
                     ),
-                    color = Color(0xFF0F172A)
+                    color = Color(0xFF334155)
                 )
                 if (subtitle != null) {
                     Text(

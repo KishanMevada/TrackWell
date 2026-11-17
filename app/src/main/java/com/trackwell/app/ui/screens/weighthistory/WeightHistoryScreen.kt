@@ -1,5 +1,6 @@
 package com.trackwell.app.ui.screens.weighthistory
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -24,6 +25,8 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Scale
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -80,6 +83,7 @@ fun WeightHistoryScreen(
     val statusBarInset = WindowInsets.statusBars.asPaddingValues().calculateTopPadding()
     var showWeightSheet by remember { mutableStateOf(false) }
     var editWeightDay by remember { mutableStateOf<DayOverview?>(null) }
+    var showFilters by remember { mutableStateOf(false) }
 
     Box(
         modifier = modifier
@@ -163,75 +167,71 @@ fun WeightHistoryScreen(
                         }
                     }
 
-                    // Calendar / Range indicator icon pill
+                    // Filter Toggle Pill
                     Surface(
                         onClick = {
                             HapticFeedbackHelper.performTickHaptic(context)
+                            showFilters = !showFilters
                         },
                         shape = RoundedCornerShape(16.dp),
-                        color = Color(0xFFEFF6FF),
-                        border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFFBFDBFE)),
+                        color = if (showFilters) Color(0xFFEFF6FF) else Color.White,
+                        border = androidx.compose.foundation.BorderStroke(1.dp, if (showFilters) Color(0xFFBFDBFE) else Color(0xFFE2E8F0)),
                         modifier = Modifier.padding(start = 8.dp)
                     ) {
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
                             modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp)
                         ) {
-                            Icon(
-                                painter = painterResource(id = R.drawable.ic_calendar),
-                                contentDescription = "Calendar Filter",
-                                tint = Color(0xFF2563EB),
-                                modifier = Modifier.size(14.dp)
-                            )
-                            Spacer(modifier = Modifier.width(6.dp))
                             Text(
-                                text = uiState.selectedRange.label,
+                                text = "Filter 📅",
                                 fontSize = 12.sp,
                                 fontWeight = FontWeight.SemiBold,
-                                color = Color(0xFF2563EB)
+                                color = if (showFilters) Color(0xFF2563EB) else Color(0xFF475569)
                             )
                         }
                     }
                 }
             }
 
-            item {
-                Spacer(modifier = Modifier.height(12.dp))
-            }
+            if (showFilters) {
+                item {
+                    Spacer(modifier = Modifier.height(12.dp))
+                }
 
-            // 3. Time Range Filter Chips Carousel
-            item {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .horizontalScroll(rememberScrollState())
-                        .padding(horizontal = 16.dp),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    WeightTimeRange.entries.filter { it != WeightTimeRange.CUSTOM }.forEach { range ->
-                        val isSelected = range == uiState.selectedRange
-                        val bg = if (isSelected) Color(0xFFEFF6FF) else Color.White
-                        val borderCol = if (isSelected) Color(0xFF93C5FD) else Color(0xFFE2E8F0)
-                        val textCol = if (isSelected) Color(0xFF2563EB) else Color(0xFF64748B)
+                // 3. Time Range Filter Chips Carousel
+                item {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .horizontalScroll(rememberScrollState())
+                            .padding(horizontal = 16.dp),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        WeightTimeRange.entries.filter { it != WeightTimeRange.CUSTOM }.forEach { range ->
+                            val isSelected = range == uiState.selectedRange
+                            val bg = if (isSelected) Color(0xFFEFF6FF) else Color.White
+                            val borderCol = if (isSelected) Color(0xFF93C5FD) else Color(0xFFE2E8F0)
+                            val textCol = if (isSelected) Color(0xFF2563EB) else Color(0xFF64748B)
 
-                        Box(
-                            modifier = Modifier
-                                .clip(RoundedCornerShape(20.dp))
-                                .background(bg)
-                                .border(width = 1.dp, color = borderCol, shape = RoundedCornerShape(20.dp))
-                                .clickable {
-                                    HapticFeedbackHelper.performTickHaptic(context)
-                                    viewModel.selectRange(range)
-                                }
-                                .padding(horizontal = 16.dp, vertical = 8.dp),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Text(
-                                text = range.label,
-                                fontSize = 13.sp,
-                                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
-                                color = textCol
-                            )
+                            Box(
+                                modifier = Modifier
+                                    .clip(RoundedCornerShape(20.dp))
+                                    .background(bg)
+                                    .border(width = 1.dp, color = borderCol, shape = RoundedCornerShape(20.dp))
+                                    .clickable {
+                                        HapticFeedbackHelper.performTickHaptic(context)
+                                        viewModel.selectRange(range)
+                                    }
+                                    .padding(horizontal = 16.dp, vertical = 8.dp),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Text(
+                                    text = range.label,
+                                    fontSize = 13.sp,
+                                    fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
+                                    color = textCol
+                                )
+                            }
                         }
                     }
                 }
@@ -439,18 +439,70 @@ fun WeightHistoryScreen(
                 Spacer(modifier = Modifier.height(10.dp))
             }
 
-            // 7. List of Chronological Weight Entries
-            items(uiState.historyEntries, key = { it.date }) { day ->
-                WeightEntryItem(
-                    day = day,
-                    onClick = {
-                        HapticFeedbackHelper.performClickHaptic(context)
-                        editWeightDay = day
-                    },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 16.dp, vertical = 5.dp)
-                )
+            // 7. List of Chronological Weight Entries or Empty Hint Card
+            if (uiState.historyEntries.isEmpty()) {
+                item {
+                    Surface(
+                        shape = RoundedCornerShape(22.dp),
+                        color = Color.White,
+                        border = BorderStroke(1.dp, Color(0xFFF1F5F9)),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp, vertical = 8.dp)
+                            .homeCardShadow(cornerRadius = 22.dp)
+                    ) {
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(24.dp),
+                            horizontalAlignment = Alignment.CenterHorizontally
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .size(52.dp)
+                                    .clip(CircleShape)
+                                    .background(Color(0xFFEFF6FF)),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Scale,
+                                    contentDescription = null,
+                                    tint = Color(0xFF2563EB),
+                                    modifier = Modifier.size(26.dp)
+                                )
+                            }
+                            Spacer(modifier = Modifier.height(14.dp))
+                            Text(
+                                text = "No weight logs recorded yet",
+                                fontSize = 15.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = Color(0xFF0F172A),
+                                textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                            )
+                            Spacer(modifier = Modifier.height(4.dp))
+                            Text(
+                                text = "Tap '+ Set Initial Dry Weight' above or log morning weight daily to track body dry weight trends.",
+                                fontSize = 12.5.sp,
+                                color = Color(0xFF64748B),
+                                textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+                                lineHeight = 18.sp
+                            )
+                        }
+                    }
+                }
+            } else {
+                items(uiState.historyEntries, key = { it.date }) { day ->
+                    WeightEntryItem(
+                        day = day,
+                        onClick = {
+                            HapticFeedbackHelper.performClickHaptic(context)
+                            editWeightDay = day
+                        },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp, vertical = 5.dp)
+                    )
+                }
             }
 
             // Bottom Spacing for Floating Navigation Bar

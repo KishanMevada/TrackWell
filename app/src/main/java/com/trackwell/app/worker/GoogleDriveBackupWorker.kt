@@ -12,6 +12,7 @@ import androidx.work.WorkerParameters
 import com.trackwell.app.MainActivity
 import com.trackwell.app.TrackWellApp
 import com.trackwell.app.data.preferences.UserPreferences
+import com.trackwell.app.data.remote.GoogleDriveService
 import com.trackwell.app.ui.screens.exportdata.generator.BackupRestoreManager
 import dagger.assisted.Assisted
 import dagger.assisted.AssistedInject
@@ -22,7 +23,8 @@ class GoogleDriveBackupWorker @AssistedInject constructor(
     @Assisted private val context: Context,
     @Assisted workerParams: WorkerParameters,
     private val userPreferences: UserPreferences,
-    private val backupRestoreManager: BackupRestoreManager
+    private val backupRestoreManager: BackupRestoreManager,
+    private val googleDriveService: GoogleDriveService
 ) : CoroutineWorker(context, workerParams) {
 
     companion object {
@@ -42,11 +44,25 @@ class GoogleDriveBackupWorker @AssistedInject constructor(
             val backupFile = backupRestoreManager.createEncryptedBackup(context)
 
             val now = System.currentTimeMillis()
-            val status = "Synced to ${settings.googleDriveAccount} (${backupFile.name})"
-            userPreferences.recordGoogleDriveBackupResult(now, status)
+            val accountName = settings.googleDriveAccount.ifBlank {
+                googleDriveService.getLastSignedInAccount()?.email ?: "Google Drive"
+            }
 
-            showBackupNotification(backupFile.name, settings.googleDriveAccount)
-            Log.i(TAG, "Daily Google Drive backup completed successfully: ${backupFile.name}")
+            val uploadResult = googleDriveService.uploadBackupFile(backupFile)
+            if (uploadResult.isSuccess) {
+                val metadata = uploadResult.getOrNull()
+                val status = "Synced to $accountName (${metadata?.fileName ?: backupFile.name})"
+                userPreferences.recordGoogleDriveBackupResult(now, status)
+                showBackupNotification(metadata?.fileName ?: backupFile.name, accountName)
+                Log.i(TAG, "Daily Google Drive backup completed successfully: ${metadata?.fileId}")
+            } else {
+                val errorMsg = uploadResult.exceptionOrNull()?.localizedMessage ?: "Upload failed"
+                val status = "Local backup created ($accountName)"
+                userPreferences.recordGoogleDriveBackupResult(now, status)
+                showBackupNotification(backupFile.name, accountName)
+                Log.w(TAG, "Local backup created, but Google Drive cloud upload failed: $errorMsg")
+            }
+
             Result.success()
         } catch (e: Exception) {
             Log.e(TAG, "Error performing Google Drive auto-backup", e)

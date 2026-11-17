@@ -39,11 +39,11 @@ data class WeightHistoryUiState(
     val yesterdayWeightKg: Float? = null,
     val yesterdayWeightDiffKg: Float? = null,
     val priorWeightPoints: List<WeightPoint> = emptyList(),
-    val latestDeltaKg: Float = -0.15f,
-    val averageWeightKg: Float = 55.67f,
-    val netPeriodChangeKg: Float = 0.00f,
-    val baselineGainKg: Float = 5.67f,
-    val targetWeightKg: Float = 55.50f,
+    val latestDeltaKg: Float = 0f,
+    val averageWeightKg: Float = 0f,
+    val netPeriodChangeKg: Float = 0f,
+    val baselineGainKg: Float = 0f,
+    val targetWeightKg: Float = 0f,
     val chartPoints: List<WeightPoint> = emptyList(),
     val historyEntries: List<DayOverview> = emptyList(),
     val appSettings: AppSettings = AppSettings(),
@@ -86,11 +86,11 @@ class WeightHistoryViewModel @Inject constructor(
 
         val currentWeight = if (isLoggedToday) todayEntry?.morningWeightKg?.toFloat() else null
         val latestDay = daysWithWeight.lastOrNull()
-        val latestDelta = latestDay?.weightDiffPreviousDay?.toFloat() ?: (yesterdayWeightDiffKg ?: -0.15f)
+        val latestDelta = latestDay?.weightDiffPreviousDay?.toFloat() ?: (yesterdayWeightDiffKg ?: 0f)
 
-        val avgWeight = if (weights.isNotEmpty()) weights.average().toFloat() else (yesterdayWeightKg ?: 55.67f)
-        val netChange = if (weights.size >= 2) weights.last() - weights.first() else 0.00f
-        val baselineGain = (currentWeight ?: yesterdayWeightKg ?: 55.70f) - 50.03f // Authentic transplant baseline
+        val avgWeight = if (weights.isNotEmpty()) weights.average().toFloat() else 0f
+        val netChange = if (weights.size >= 2) weights.last() - weights.first() else 0f
+        val baselineGain = if (weights.isNotEmpty()) (weights.last() - weights.first()) else 0f
 
         val dayFormatter = SimpleDateFormat("EEE", Locale.US)
         val shortDateFormatter = SimpleDateFormat("d MMM", Locale.US)

@@ -116,6 +116,8 @@ import com.trackwell.app.ui.screens.exportdata.ExportScreen
 import com.trackwell.app.ui.screens.history.HistoryScreen
 import com.trackwell.app.ui.screens.importdata.ImportHistoryScreen
 import com.trackwell.app.ui.screens.importdata.ImportScreen
+import com.trackwell.app.ui.screens.onboarding.OnboardingScreen
+import com.trackwell.app.ui.screens.settings.CareProfileScreen
 import com.trackwell.app.ui.screens.settings.SettingsScreen
 import com.trackwell.app.ui.screens.today.TodayScreen
 import com.trackwell.app.ui.screens.today.TodayViewModel
@@ -197,6 +199,7 @@ class MainActivity : FragmentActivity() {
                     )
                 } else {
                     MainAppScaffold(
+                        initialHasCompletedSetup = settings.hasCompletedInitialSetup,
                         pendingNavRoute = pendingNavigationRoute.value,
                         onNavRouteHandled = { pendingNavigationRoute.value = null }
                     )
@@ -210,6 +213,7 @@ class MainActivity : FragmentActivity() {
                     setContent {
                         TrackWellTheme {
                             MainAppScaffold(
+                                initialHasCompletedSetup = settings.hasCompletedInitialSetup,
                                 pendingNavRoute = pendingNavigationRoute.value,
                                 onNavRouteHandled = { pendingNavigationRoute.value = null }
                             )
@@ -290,6 +294,7 @@ data class BottomNavItem(
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MainAppScaffold(
+    initialHasCompletedSetup: Boolean = false,
     pendingNavRoute: String? = null,
     onNavRouteHandled: () -> Unit = {}
 ) {
@@ -297,6 +302,7 @@ fun MainAppScaffold(
     val context = LocalContext.current
     val todayViewModel: TodayViewModel = hiltViewModel()
     val todayUiState by todayViewModel.uiState.collectAsState()
+    val hasCompletedSetup = initialHasCompletedSetup || todayUiState.appSettings.hasCompletedInitialSetup
 
     androidx.compose.runtime.LaunchedEffect(pendingNavRoute) {
         if (pendingNavRoute != null) {
@@ -343,9 +349,27 @@ fun MainAppScaffold(
 
         NavHost(
             navController = navController,
-            startDestination = Screen.Today.route,
+            startDestination = if (hasCompletedSetup) Screen.Today.route else Screen.Onboarding.route,
             modifier = Modifier.fillMaxSize()
         ) {
+            composable(Screen.Onboarding.route) {
+                OnboardingScreen(
+                    viewModel = hiltViewModel(),
+                    onOnboardingComplete = {
+                        navController.navigate(Screen.Today.route) {
+                            popUpTo(Screen.Onboarding.route) { inclusive = true }
+                        }
+                    }
+                )
+            }
+
+            composable(Screen.CareProfile.route) {
+                CareProfileScreen(
+                    userPreferences = todayViewModel.userPreferences,
+                    onNavigateUp = { navController.navigateUp() }
+                )
+            }
+
             composable(Screen.Today.route) {
                 TodayScreen(
                     viewModel = todayViewModel,
@@ -360,6 +384,12 @@ fun MainAppScaffold(
                     },
                     onNavigateToBloodSugarHistory = {
                         navController.navigate(Screen.BloodSugarHistory.route)
+                    },
+                    onNavigateToCareProfile = {
+                        navController.navigate(Screen.CareProfile.route)
+                    },
+                    onNavigateToSettings = {
+                        navController.navigate(Screen.Settings.route)
                     }
                 )
             }
@@ -397,6 +427,7 @@ fun MainAppScaffold(
             composable(Screen.Settings.route) {
                 SettingsScreen(
                     viewModel = hiltViewModel(),
+                    onNavigateToCareProfile = { navController.navigate(Screen.CareProfile.route) },
                     onNavigateToImport = { navController.navigate(Screen.ImportData.route) },
                     onNavigateToExport = { navController.navigate(Screen.ExportData.route) }
                 )
@@ -460,9 +491,8 @@ fun MainAppScaffold(
                         showGlobalQuickActionSheet = true
                     } else if (currentRoute != target.route) {
                         navController.navigate(target.route) {
-                            popUpTo(Screen.Today.route) { saveState = true }
+                            popUpTo(Screen.Today.route)
                             launchSingleTop = true
-                            restoreState = true
                         }
                     }
                 },

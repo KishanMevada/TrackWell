@@ -59,13 +59,13 @@ data class BloodSugarHistoryUiState(
     val priorSugarPoints: List<BloodSugarPoint> = emptyList(),
     val priorSugarAvg: Int? = null,
     val suggestedSlot: SugarSlot = SugarSlot.suggestCurrentSlot(),
-    val latestReadingMgDl: Int = 176,
-    val latestStatus: String = "High",
-    val latestSlotTitle: String = "Before Dinner",
-    val averageSugarMgDl: Int = 165,
-    val inRangePercent: Int = 72,
-    val highestReadingMgDl: Int = 220,
-    val lowestReadingMgDl: Int = 91,
+    val latestReadingMgDl: Int = 0,
+    val latestStatus: String = "--",
+    val latestSlotTitle: String = "Glucose",
+    val averageSugarMgDl: Int = 0,
+    val inRangePercent: Int = 0,
+    val highestReadingMgDl: Int = 0,
+    val lowestReadingMgDl: Int = 0,
     val totalInsulinUnits: Double = 0.0,
     val chartPoints: List<SugarChartPoint> = emptyList(),
     val historyDays: List<DayOverview> = emptyList(),
@@ -148,11 +148,11 @@ class BloodSugarHistoryViewModel @Inject constructor(
 
         val allValues = chronologicalReadings.map { it.second.sugarMgDl }
         val latestReadingEntry = chronologicalReadings.lastOrNull()?.second
-        val latestVal = latestReadingEntry?.sugarMgDl ?: 176
-        val latestSlotTitle = latestReadingEntry?.slot?.title ?: "Before Dinner"
+        val latestVal = latestReadingEntry?.sugarMgDl ?: 0
+        val latestSlotTitle = latestReadingEntry?.slot?.title ?: "Glucose"
 
         val thresholds = settings.thresholdSettings
-        val latestStatusEnum = thresholds.evaluate(latestVal)
+        val latestStatusEnum = if (allValues.isNotEmpty()) thresholds.evaluate(latestVal) else SugarReadingStatus.NOT_RECORDED
         val latestStatusStr = when (latestStatusEnum) {
             SugarReadingStatus.HIGH -> "High"
             SugarReadingStatus.LOW -> "Low"
@@ -160,11 +160,11 @@ class BloodSugarHistoryViewModel @Inject constructor(
             SugarReadingStatus.NOT_RECORDED -> "--"
         }
 
-        val avgSugar = if (allValues.isNotEmpty()) allValues.average().toInt() else 165
+        val avgSugar = if (allValues.isNotEmpty()) allValues.average().toInt() else 0
         val inRangeCount = allValues.count { thresholds.evaluate(it) == SugarReadingStatus.IN_RANGE }
-        val inRangePct = if (allValues.isNotEmpty()) ((inRangeCount.toFloat() / allValues.size) * 100).toInt() else 70
-        val maxVal = allValues.maxOrNull() ?: 220
-        val minVal = allValues.minOrNull() ?: 91
+        val inRangePct = if (allValues.isNotEmpty()) ((inRangeCount.toFloat() / allValues.size) * 100).toInt() else 0
+        val maxVal = allValues.maxOrNull() ?: 0
+        val minVal = allValues.minOrNull() ?: 0
         val totalInsulin = chronologicalReadings.sumOf { it.second.insulinUnits }
 
         // Build chart points

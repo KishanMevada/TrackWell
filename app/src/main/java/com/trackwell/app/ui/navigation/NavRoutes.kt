@@ -1,6 +1,8 @@
 package com.trackwell.app.ui.navigation
 
 sealed class Screen(val route: String, val title: String) {
+    data object Onboarding : Screen("onboarding", "Onboarding")
+    data object CareProfile : Screen("care_profile", "Care Profile")
     data object Today : Screen("today", "Today")
     data object History : Screen("history", "History")
     data object Settings : Screen("settings", "Settings")

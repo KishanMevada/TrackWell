@@ -136,4 +136,10 @@ class SettingsViewModel @Inject constructor(
             reminderScheduler.scheduleAll(settings.value.copy(fluidNudgeEnabled = enabled))
         }
     }
+
+    fun togglePreviewMode(active: Boolean) {
+        viewModelScope.launch {
+            userPreferences.togglePreviewMode(active)
+        }
+    }
 }

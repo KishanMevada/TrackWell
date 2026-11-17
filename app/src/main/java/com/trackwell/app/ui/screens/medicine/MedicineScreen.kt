@@ -89,7 +89,8 @@ import com.trackwell.app.ui.theme.TargetTokens
 @Composable
 fun MedicineScreen(
     viewModel: MedicineViewModel = hiltViewModel(),
-    onNavigateBack: () -> Unit = {}
+    onNavigateBack: () -> Unit = {},
+    showBackButton: Boolean = false
 ) {
     val context = LocalContext.current
     val uiState by viewModel.uiState.collectAsState()
@@ -187,7 +188,7 @@ fun MedicineScreen(
             // Status bar spacer
             Spacer(modifier = Modifier.height(statusBarInset + 8.dp))
 
-            // Actionbar: Matches Weight History / Blood Sugar History Top App Bar
+            // Actionbar
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -196,35 +197,36 @@ fun MedicineScreen(
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    // Elevated Circular Claymorphic Back Button
-                    Surface(
-                        onClick = {
-                            HapticFeedbackHelper.performClickHaptic(context)
-                            onNavigateBack()
-                        },
-                        modifier = Modifier
-                            .size(42.dp)
-                            .shadow(
-                                elevation = 6.dp,
-                                shape = CircleShape,
-                                spotColor = Color(0x404A6282),
-                                ambientColor = Color(0x2864748B)
-                            ),
-                        shape = CircleShape,
-                        color = Color.White,
-                        border = BorderStroke(1.dp, Color(0xFFF1F5F9))
-                    ) {
-                        Box(contentAlignment = Alignment.Center) {
-                            Icon(
-                                painter = painterResource(id = R.drawable.ic_chevron_left),
-                                contentDescription = "Back",
-                                tint = Color(0xFF0F172A),
-                                modifier = Modifier.size(16.dp)
-                            )
+                    if (showBackButton) {
+                        Surface(
+                            onClick = {
+                                HapticFeedbackHelper.performClickHaptic(context)
+                                onNavigateBack()
+                            },
+                            modifier = Modifier
+                                .size(42.dp)
+                                .shadow(
+                                    elevation = 6.dp,
+                                    shape = CircleShape,
+                                    spotColor = Color(0x404A6282),
+                                    ambientColor = Color(0x2864748B)
+                                ),
+                            shape = CircleShape,
+                            color = Color.White,
+                            border = BorderStroke(1.dp, Color(0xFFF1F5F9))
+                        ) {
+                            Box(contentAlignment = Alignment.Center) {
+                                Icon(
+                                    painter = painterResource(id = R.drawable.ic_chevron_left),
+                                    contentDescription = "Back",
+                                    tint = Color(0xFF0F172A),
+                                    modifier = Modifier.size(16.dp)
+                                )
+                            }
                         }
-                    }
 
-                    Spacer(modifier = Modifier.width(16.dp))
+                        Spacer(modifier = Modifier.width(14.dp))
+                    }
 
                     Column {
                         Text(

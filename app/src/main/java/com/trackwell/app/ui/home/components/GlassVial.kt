@@ -233,7 +233,7 @@ fun GlassVial(
             maxLength = 119.ds
         )
 
-        // 3. Add Button: 40 x 57 ds, centered at x = 12 ds, y = 151 ds inside vial (block-local y = 302 ds)
+        // 3. Add Button: 40 x 57 ds, centered at x = 12 ds, y = 151 ds inside vial
         Box(
             modifier = Modifier
                 .offset(x = 12.ds, y = 151.ds)
@@ -274,25 +274,14 @@ fun GlassVial(
                 },
             contentAlignment = Alignment.Center
         ) {
-            Column(
-                horizontalAlignment = Alignment.CenterHorizontally
-            ) {
-                Text(
-                    text = "+",
-                    style = TargetTypography.addButtonPlus.copy(fontSize = 16.dsp),
-                    lineHeight = 14.sp
+            Text(
+                text = "+",
+                style = TargetTypography.addButtonPlus.copy(
+                    fontSize = 28.dsp,
+                    fontWeight = FontWeight.Bold,
+                    color = TargetTokens.textPrimary
                 )
-                Text(
-                    text = "Add",
-                    style = TargetTypography.addButtonText.copy(fontSize = 11.dsp),
-                    lineHeight = 12.sp
-                )
-                Text(
-                    text = buttonSubtitle,
-                    style = TargetTypography.addButtonText.copy(fontSize = 11.dsp),
-                    lineHeight = 12.sp
-                )
-            }
+            )
         }
     }
 }

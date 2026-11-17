@@ -23,9 +23,24 @@ import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.unit.sp
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.Circle
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material3.DatePickerDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.ui.text.font.FontWeight
+import com.trackwell.app.ui.common.PreviewModeBanner
+import com.trackwell.app.ui.home.components.neuRaisedL
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.DisposableEffect
@@ -96,6 +111,8 @@ fun TodayScreen(
     onNavigateToHistory: () -> Unit = {},
     onNavigateToWeightHistory: () -> Unit = onNavigateToHistory,
     onNavigateToBloodSugarHistory: () -> Unit = onNavigateToHistory,
+    onNavigateToCareProfile: () -> Unit = {},
+    onNavigateToSettings: () -> Unit = {},
     modifier: Modifier = Modifier,
     previewLevels: Pair<Float, Float>? = null
 ) {
@@ -125,9 +142,9 @@ fun TodayScreen(
     var showDatePickerDialog by remember { mutableStateOf(false) }
     var showDebugOverlay by remember { mutableStateOf(false) }
 
-    // Patient Name & Greeting
-    val patientName = uiState.appSettings.patientName.ifBlank { "Kishan" }
-    val greetingText = "Hi, $patientName!"
+    // User Name & Greeting
+    val patientName = uiState.appSettings.patientName.trim()
+    val greetingText = if (patientName.isNotBlank()) "Hi, $patientName!" else "Hi there!"
 
     // Effective values bound directly to dynamic Room DB uiState
     val effectiveIntakeTarget = if (uiState.appSettings.intakeTargetMl > 0) uiState.appSettings.intakeTargetMl else 3500
@@ -244,6 +261,15 @@ fun TodayScreen(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
+                        // 0. Top Preview Mode Banner if active
+                        if (uiState.appSettings.isPreviewModeActive) {
+                            Spacer(modifier = Modifier.height(gap1.dp))
+                            PreviewModeBanner(
+                                onExitPreviewMode = { viewModel.exitPreviewMode() },
+                                modifier = Modifier.padding(horizontal = 4.dp)
+                            )
+                        }
+
                         // 1. Gap 1: above greeting
                         Spacer(modifier = Modifier.height(gap1.dp))
 
@@ -307,7 +333,102 @@ fun TodayScreen(
                     // 5. Gap 3: date pill to hero block
                     Spacer(modifier = Modifier.height(gap3.dp))
 
+                    // Setup Checklist Card
+                    if (!uiState.appSettings.isSetupChecklistDismissed && !uiState.appSettings.isPreviewModeActive) {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 4.dp)
+                                .neuRaisedL(cornerRadius = 20.dp)
+                                .clip(RoundedCornerShape(20.dp))
+                                .background(TargetTokens.surface)
+                                .border(1.dp, TargetTokens.divider, RoundedCornerShape(20.dp))
+                                .padding(16.dp)
+                        ) {
+                            Column {
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Row(verticalAlignment = Alignment.CenterVertically) {
+                                        Icon(
+                                            imageVector = Icons.Default.CheckCircle,
+                                            contentDescription = null,
+                                            tint = Color(0xFF0284C7),
+                                            modifier = Modifier.size(18.dp)
+                                        )
+                                        Spacer(modifier = Modifier.width(8.dp))
+                                        Text(
+                                            text = "Make TrackWell Work For You",
+                                            style = TargetTypography.statCardLabel.copy(fontSize = 13.5.sp, fontWeight = FontWeight.Bold),
+                                            color = TargetTokens.textPrimary
+                                        )
+                                    }
+
+                                    IconButton(
+                                        onClick = { viewModel.dismissSetupChecklist() },
+                                        modifier = Modifier.size(24.dp)
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.Default.Close,
+                                            contentDescription = "Dismiss",
+                                            tint = TargetTokens.textSecondary,
+                                            modifier = Modifier.size(16.dp)
+                                        )
+                                    }
+                                }
+
+                                Spacer(modifier = Modifier.height(10.dp))
+
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .clickable { onNavigateToCareProfile() }
+                                        .padding(vertical = 4.dp),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Icon(
+                                        imageVector = if (uiState.appSettings.patientName.isNotBlank()) Icons.Default.CheckCircle else Icons.Default.Circle,
+                                        contentDescription = null,
+                                        tint = if (uiState.appSettings.patientName.isNotBlank()) Color(0xFF16A34A) else Color(0xFFCBD5E1),
+                                        modifier = Modifier.size(16.dp)
+                                    )
+                                    Spacer(modifier = Modifier.width(10.dp))
+                                    Text(
+                                        text = if (uiState.appSettings.patientName.isNotBlank()) "Care profile updated" else "Add preferred name or care details (optional)",
+                                        fontSize = 12.5.sp,
+                                        color = TargetTokens.textSecondary
+                                    )
+                                }
+
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .clickable { onNavigateToSettings() }
+                                        .padding(vertical = 4.dp),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.Circle,
+                                        contentDescription = null,
+                                        tint = Color(0xFFCBD5E1),
+                                        modifier = Modifier.size(16.dp)
+                                    )
+                                    Spacer(modifier = Modifier.width(10.dp))
+                                    Text(
+                                        text = "Configure reminders & notifications",
+                                        fontSize = 12.5.sp,
+                                        color = TargetTokens.textSecondary
+                                    )
+                                }
+                            }
+                        }
+                        Spacer(modifier = Modifier.height(16.dp))
+                    }
+
                     // 6. HERO BLOCK: Single Unified Composition (372 x 372 design dp)
+                    if (uiState.appSettings.isModuleSelected("FLUID")) {
                     // Force LayoutDirection.Ltr so anatomical layout never mirrors under RTL locales
                     CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Ltr) {
                         Box(
@@ -368,15 +489,21 @@ fun TodayScreen(
                                 balanceMl = displayBalance,
                                 statusText = statusLabel,
                                 statusColor = statusColor,
+                                onStatusClick = {
+                                    HapticFeedbackHelper.performClickHaptic(context)
+                                    onNavigateToDayDetail(uiState.selectedDate)
+                                },
                                 modifier = Modifier.offset(x = 81.ds, y = 0.ds)
                             )
                         }
+                    }
                     }
 
                     // 7. Gap 4: hero block to stat cards
                     Spacer(modifier = Modifier.height(gap4.dp))
 
                     // 8. Full-Width Weight Card with Adaptive Unlogged / Logged States
+                    if (uiState.appSettings.isModuleSelected("WEIGHT")) {
                     val isWeightLoggedToday = uiState.dayOverview.morningWeightKg != null
                     val currentWeight = uiState.dayOverview.morningWeightKg?.toFloat()
                     val weightDiff = uiState.dayOverview.weightDiffPreviousDay?.toFloat()
@@ -400,8 +527,10 @@ fun TodayScreen(
                     )
 
                     Spacer(modifier = Modifier.height(16.dp))
+                    }
 
                     // 9. Full-Width Blood Sugar Card with Adaptive Unlogged / Logged States
+                    if (uiState.appSettings.isModuleSelected("SUGAR")) {
                     val isSugarLoggedToday = uiState.dayOverview.sugarEntries.values.any { it.sugarMgDl > 0 }
                     val latestSugarValue = latestSugarEntry?.sugarMgDl
                     val sugarStatusText = if (latestSugarValue != null) {
@@ -443,6 +572,7 @@ fun TodayScreen(
                             showSugarSheet = true
                         }
                     )
+                    }
 
                     // 10. Generous bottom spacing to ensure full scrollability above the floating bottom dock
                     val bottomMargin = maxOf(25f * scaleS, B + 16f)
@@ -488,10 +618,11 @@ fun TodayScreen(
     }
 
     if (showWeightDialog) {
-        EditWeightDialog(
-            initialWeight = uiState.dayOverview.morningWeightKg,
+        com.trackwell.app.ui.screens.weighthistory.WeightEntryBottomSheet(
+            selectedDateIso = uiState.selectedDate,
+            initialWeightKg = uiState.dayOverview.morningWeightKg,
             onDismiss = { showWeightDialog = false },
-            onConfirm = { weightKg ->
+            onSave = { weightKg ->
                 viewModel.updateWeight(weightKg)
                 showWeightDialog = false
             }

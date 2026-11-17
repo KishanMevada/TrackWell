@@ -470,6 +470,8 @@ private fun LoggedWeightChart(
         val w = size.width
         val h = size.height
 
+        if (points.isEmpty()) return@Canvas
+
         val horizontalPadding = 14.dp.toPx()
         val topPadding = 22.dp.toPx()
         val bottomPadding = 10.dp.toPx()
@@ -608,6 +610,20 @@ private fun PartialWeightChart(
     Canvas(modifier = modifier) {
         val w = size.width
         val h = size.height
+
+        if (priorPoints.isEmpty()) {
+            val padX = 18.dp.toPx()
+            val targetY = h * 0.5f
+            val dash = PathEffect.dashPathEffect(floatArrayOf(4.dp.toPx(), 4.dp.toPx()), 0f)
+            drawLine(
+                color = Color(0xFF60A5FA).copy(alpha = 0.25f),
+                start = Offset(padX, targetY),
+                end = Offset(w - padX, targetY),
+                strokeWidth = 1.5.dp.toPx(),
+                pathEffect = dash
+            )
+            return@Canvas
+        }
 
         val horizontalPadding = 18.dp.toPx()
         val topPadding = 24.dp.toPx()

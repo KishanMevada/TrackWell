@@ -54,7 +54,11 @@ android {
     }
     packaging {
         resources {
-            excludes += "/META-INF/{AL2.0,LGPL2.1}"
+            excludes += setOf(
+                "/META-INF/{AL2.0,LGPL2.1}",
+                "/META-INF/DEPENDENCIES",
+                "/META-INF/INDEX.LIST"
+            )
         }
     }
 }
@@ -107,6 +111,12 @@ dependencies {
     // OkHttp & Gson
     implementation(libs.okhttp)
     implementation(libs.gson)
+
+    // Google Auth & Google Drive API
+    implementation(libs.google.play.services.auth)
+    implementation(libs.google.api.client.android)
+    implementation(libs.google.api.services.drive)
+    implementation(libs.google.http.client.gson)
 
     // Coroutines
     implementation(libs.kotlinx.coroutines.android)

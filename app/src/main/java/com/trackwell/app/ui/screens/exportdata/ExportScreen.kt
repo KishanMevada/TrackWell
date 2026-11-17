@@ -28,6 +28,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.AccountCircle
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.CloudDownload
 import androidx.compose.material.icons.filled.CloudSync
@@ -105,6 +106,14 @@ fun ExportScreen(
         contract = ActivityResultContracts.OpenDocument()
     ) { uri ->
         uri?.let { viewModel.restoreFromDriveUri(it) }
+    }
+
+    val googleSignInLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.StartActivityForResult()
+    ) { result ->
+        if (result.resultCode == android.app.Activity.RESULT_OK) {
+            viewModel.handleGoogleSignInResult(result.data)
+        }
     }
 
     LaunchedEffect(Unit) {
@@ -280,7 +289,14 @@ fun ExportScreen(
                             Row(
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .clickable { showAccountDialog = true }
+                                    .clickable {
+                                        if (settings.googleDriveAccount.isBlank()) {
+                                            val intent = viewModel.googleDriveService.getGoogleSignInClient().signInIntent
+                                            googleSignInLauncher.launch(intent)
+                                        } else {
+                                            showAccountDialog = true
+                                        }
+                                    }
                                     .padding(vertical = 4.dp),
                                 verticalAlignment = Alignment.CenterVertically,
                                 horizontalArrangement = Arrangement.SpaceBetween
@@ -292,9 +308,9 @@ fun ExportScreen(
                                         color = Color(0xFF94A3B8)
                                     )
                                     Text(
-                                        settings.googleDriveAccount,
+                                        if (settings.googleDriveAccount.isNotBlank()) settings.googleDriveAccount else "Tap to Sign in with Google",
                                         style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold, fontSize = 14.sp),
-                                        color = Color(0xFF0F172A)
+                                        color = if (settings.googleDriveAccount.isNotBlank()) Color(0xFF0F172A) else Color(0xFF0284C7)
                                     )
                                 }
                                 Box(
@@ -305,10 +321,10 @@ fun ExportScreen(
                                     contentAlignment = Alignment.Center
                                 ) {
                                     Icon(
-                                        imageVector = Icons.Default.Edit,
-                                        contentDescription = "Edit Account",
+                                        imageVector = if (settings.googleDriveAccount.isNotBlank()) Icons.Default.Edit else Icons.Default.AccountCircle,
+                                        contentDescription = "Account",
                                         tint = Color(0xFF0284C7),
-                                        modifier = Modifier.size(15.dp)
+                                        modifier = Modifier.size(16.dp)
                                     )
                                 }
                             }
@@ -390,7 +406,7 @@ fun ExportScreen(
                                 horizontalArrangement = Arrangement.spacedBy(10.dp)
                             ) {
                                 Surface(
-                                    onClick = { driveRestoreLauncher.launch(arrayOf("*/*")) },
+                                    onClick = { viewModel.restoreFromGoogleDriveCloud() },
                                     shape = RoundedCornerShape(16.dp),
                                     color = Color(0xFFF8FAFC),
                                     border = BorderStroke(1.dp, Color(0xFFE2E8F0)),
@@ -405,7 +421,7 @@ fun ExportScreen(
                                     ) {
                                         Icon(imageVector = Icons.Default.CloudDownload, contentDescription = null, tint = Color(0xFF475569), modifier = Modifier.size(18.dp))
                                         Spacer(modifier = Modifier.width(6.dp))
-                                        Text("Restore", fontSize = 13.sp, fontWeight = FontWeight.Bold, color = Color(0xFF334155))
+                                        Text("Restore Cloud", fontSize = 13.sp, fontWeight = FontWeight.Bold, color = Color(0xFF334155))
                                     }
                                 }
 

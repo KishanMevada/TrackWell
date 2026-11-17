@@ -28,10 +28,11 @@ data class AppSettings(
     val isBiometricEnabled: Boolean = false,
     val geminiApiKey: String = "",
     val patientName: String = "",
-    val transplantDate: String = "2026-07-20",
-    val bloodGroup: String = "B+",
+    val healthContext: String = "",
+    val transplantDate: String = "",
+    val bloodGroup: String = "",
     val nephrologistContact: String = "",
-    val emergencyNotes: String = "Kidney Transplant Patient (Graft in Right Iliac Fossa). Avoid NSAIDs.",
+    val emergencyNotes: String = "",
     val themeMode: String = "SYSTEM", // "SYSTEM", "LIGHT", "DARK"
     val isBpEnabled: Boolean = true,
     val isPulseEnabled: Boolean = true,
@@ -43,12 +44,27 @@ data class AppSettings(
     val sugarReminderDinner: String = "20:00",
     val weightReminderMorning: String = "07:00",
     val fluidNudgeEnabled: Boolean = true,
-    val isGoogleDriveBackupEnabled: Boolean = true,
-    val googleDriveAccount: String = "Kishan's Google Drive",
+    val isGoogleDriveBackupEnabled: Boolean = false,
+    val googleDriveAccount: String = "",
     val googleDriveBackupTime: String = "02:00",
     val lastGoogleDriveBackupTimestamp: Long = 0L,
-    val lastGoogleDriveBackupStatus: String = "Active (Daily 02:00 AM)"
-)
+    val lastGoogleDriveBackupStatus: String = "Not Configured",
+    // FTUE & Modular Dashboard Preferences
+    val hasCompletedInitialSetup: Boolean = false,
+    val selectedModulesCsv: String = "FLUID,WEIGHT,SUGAR,MEDS,VITALS",
+    val isPreviewModeActive: Boolean = false,
+    val isSetupChecklistDismissed: Boolean = false,
+    val seenTooltipsCsv: String = "",
+    val hasLoggedFirstAction: Boolean = false
+) {
+    fun isModuleSelected(moduleKey: String): Boolean {
+        return selectedModulesCsv.split(",").map { it.trim().uppercase() }.contains(moduleKey.uppercase())
+    }
+
+    fun hasSeenTooltip(tooltipId: String): Boolean {
+        return seenTooltipsCsv.split(",").contains(tooltipId)
+    }
+}
 
 @Singleton
 class UserPreferences @Inject constructor(
@@ -73,6 +89,7 @@ class UserPreferences @Inject constructor(
         val BIOMETRIC_ENABLED = booleanPreferencesKey("biometric_enabled")
         val GEMINI_API_KEY = stringPreferencesKey("gemini_api_key")
         val PATIENT_NAME = stringPreferencesKey("patient_name")
+        val HEALTH_CONTEXT = stringPreferencesKey("health_context")
         val THEME_MODE = stringPreferencesKey("theme_mode")
         val MODULE_BP = booleanPreferencesKey("module_bp")
         val MODULE_PULSE = booleanPreferencesKey("module_pulse")
@@ -89,6 +106,14 @@ class UserPreferences @Inject constructor(
         val GOOGLE_DRIVE_BACKUP_TIME = stringPreferencesKey("google_drive_backup_time")
         val LAST_GOOGLE_DRIVE_BACKUP_TS = longPreferencesKey("last_google_drive_backup_ts")
         val LAST_GOOGLE_DRIVE_BACKUP_STATUS = stringPreferencesKey("last_google_drive_backup_status")
+
+        // FTUE
+        val HAS_COMPLETED_INITIAL_SETUP = booleanPreferencesKey("has_completed_initial_setup")
+        val SELECTED_MODULES_CSV = stringPreferencesKey("selected_modules_csv")
+        val IS_PREVIEW_MODE_ACTIVE = booleanPreferencesKey("is_preview_mode_active")
+        val IS_SETUP_CHECKLIST_DISMISSED = booleanPreferencesKey("is_setup_checklist_dismissed")
+        val SEEN_TOOLTIPS_CSV = stringPreferencesKey("seen_tooltips_csv")
+        val HAS_LOGGED_FIRST_ACTION = booleanPreferencesKey("has_logged_first_action")
     }
 
     val settingsFlow: Flow<AppSettings> = dataStore.data.map { prefs ->
@@ -108,10 +133,11 @@ class UserPreferences @Inject constructor(
             isBiometricEnabled = prefs[PreferencesKeys.BIOMETRIC_ENABLED] ?: false,
             geminiApiKey = prefs[PreferencesKeys.GEMINI_API_KEY] ?: "",
             patientName = prefs[PreferencesKeys.PATIENT_NAME] ?: "",
-            transplantDate = prefs[PreferencesKeys.TRANSPLANT_DATE] ?: "2026-07-20",
-            bloodGroup = prefs[PreferencesKeys.BLOOD_GROUP] ?: "B+",
+            healthContext = prefs[PreferencesKeys.HEALTH_CONTEXT] ?: "",
+            transplantDate = prefs[PreferencesKeys.TRANSPLANT_DATE] ?: "",
+            bloodGroup = prefs[PreferencesKeys.BLOOD_GROUP] ?: "",
             nephrologistContact = prefs[PreferencesKeys.NEPHROLOGIST_CONTACT] ?: "",
-            emergencyNotes = prefs[PreferencesKeys.EMERGENCY_NOTES] ?: "Kidney Transplant Patient (Graft in Right Iliac Fossa). Avoid NSAIDs.",
+            emergencyNotes = prefs[PreferencesKeys.EMERGENCY_NOTES] ?: "",
             themeMode = prefs[PreferencesKeys.THEME_MODE] ?: "SYSTEM",
             isBpEnabled = prefs[PreferencesKeys.MODULE_BP] ?: true,
             isPulseEnabled = prefs[PreferencesKeys.MODULE_PULSE] ?: true,
@@ -123,12 +149,77 @@ class UserPreferences @Inject constructor(
             sugarReminderDinner = prefs[PreferencesKeys.REMINDER_DINNER] ?: "20:00",
             weightReminderMorning = prefs[PreferencesKeys.REMINDER_WEIGHT] ?: "07:00",
             fluidNudgeEnabled = prefs[PreferencesKeys.FLUID_NUDGE_ENABLED] ?: true,
-            isGoogleDriveBackupEnabled = prefs[PreferencesKeys.GOOGLE_DRIVE_BACKUP_ENABLED] ?: true,
-            googleDriveAccount = prefs[PreferencesKeys.GOOGLE_DRIVE_ACCOUNT] ?: "Kishan's Google Drive",
+            isGoogleDriveBackupEnabled = prefs[PreferencesKeys.GOOGLE_DRIVE_BACKUP_ENABLED] ?: false,
+            googleDriveAccount = prefs[PreferencesKeys.GOOGLE_DRIVE_ACCOUNT] ?: "",
             googleDriveBackupTime = prefs[PreferencesKeys.GOOGLE_DRIVE_BACKUP_TIME] ?: "02:00",
             lastGoogleDriveBackupTimestamp = prefs[PreferencesKeys.LAST_GOOGLE_DRIVE_BACKUP_TS] ?: 0L,
-            lastGoogleDriveBackupStatus = prefs[PreferencesKeys.LAST_GOOGLE_DRIVE_BACKUP_STATUS] ?: "Active (Daily 02:00 AM)"
+            lastGoogleDriveBackupStatus = prefs[PreferencesKeys.LAST_GOOGLE_DRIVE_BACKUP_STATUS] ?: "Not Configured",
+            hasCompletedInitialSetup = prefs[PreferencesKeys.HAS_COMPLETED_INITIAL_SETUP] ?: false,
+            selectedModulesCsv = prefs[PreferencesKeys.SELECTED_MODULES_CSV] ?: "FLUID,WEIGHT,SUGAR,MEDS,VITALS",
+            isPreviewModeActive = prefs[PreferencesKeys.IS_PREVIEW_MODE_ACTIVE] ?: false,
+            isSetupChecklistDismissed = prefs[PreferencesKeys.IS_SETUP_CHECKLIST_DISMISSED] ?: false,
+            seenTooltipsCsv = prefs[PreferencesKeys.SEEN_TOOLTIPS_CSV] ?: "",
+            hasLoggedFirstAction = prefs[PreferencesKeys.HAS_LOGGED_FIRST_ACTION] ?: false
         )
+    }
+
+    suspend fun completeInitialSetup(selectedModulesCsv: String, isPreview: Boolean) {
+        dataStore.edit {
+            it[PreferencesKeys.HAS_COMPLETED_INITIAL_SETUP] = true
+            it[PreferencesKeys.SELECTED_MODULES_CSV] = selectedModulesCsv
+            it[PreferencesKeys.IS_PREVIEW_MODE_ACTIVE] = isPreview
+        }
+    }
+
+    suspend fun updateSelectedModules(selectedModulesCsv: String) {
+        dataStore.edit {
+            it[PreferencesKeys.SELECTED_MODULES_CSV] = selectedModulesCsv
+        }
+    }
+
+    suspend fun togglePreviewMode(active: Boolean) {
+        dataStore.edit {
+            it[PreferencesKeys.IS_PREVIEW_MODE_ACTIVE] = active
+        }
+    }
+
+    suspend fun dismissSetupChecklist() {
+        dataStore.edit {
+            it[PreferencesKeys.IS_SETUP_CHECKLIST_DISMISSED] = true
+        }
+    }
+
+    suspend fun markTooltipSeen(tooltipId: String) {
+        dataStore.edit { prefs ->
+            val current = prefs[PreferencesKeys.SEEN_TOOLTIPS_CSV] ?: ""
+            val list = current.split(",").filter { it.isNotBlank() }.toMutableSet()
+            list.add(tooltipId)
+            prefs[PreferencesKeys.SEEN_TOOLTIPS_CSV] = list.joinToString(",")
+        }
+    }
+
+    suspend fun markFirstActionLogged() {
+        dataStore.edit {
+            it[PreferencesKeys.HAS_LOGGED_FIRST_ACTION] = true
+        }
+    }
+
+    suspend fun updateCareProfile(
+        patientName: String,
+        healthContext: String,
+        bloodGroup: String,
+        transplantDate: String,
+        emergencyNotes: String,
+        nephrologistContact: String
+    ) {
+        dataStore.edit {
+            it[PreferencesKeys.PATIENT_NAME] = patientName.trim()
+            it[PreferencesKeys.HEALTH_CONTEXT] = healthContext.trim()
+            it[PreferencesKeys.BLOOD_GROUP] = bloodGroup.trim()
+            it[PreferencesKeys.TRANSPLANT_DATE] = transplantDate.trim()
+            it[PreferencesKeys.EMERGENCY_NOTES] = emergencyNotes.trim()
+            it[PreferencesKeys.NEPHROLOGIST_CONTACT] = nephrologistContact.trim()
+        }
     }
 
     suspend fun updateFluidTarget(targetMl: Int) {

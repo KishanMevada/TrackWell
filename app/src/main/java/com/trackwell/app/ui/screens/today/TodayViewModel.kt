@@ -46,7 +46,7 @@ class TodayViewModel @Inject constructor(
     private val dailyHealthRepository: DailyHealthRepository,
     private val fluidRepository: FluidRepository,
     private val sugarRepository: SugarRepository,
-    private val userPreferences: UserPreferences
+    val userPreferences: UserPreferences
 ) : ViewModel() {
 
     private val _currentDate = MutableStateFlow(DateTimeUtils.getTodayIso())
@@ -241,6 +241,18 @@ class TodayViewModel @Inject constructor(
     fun updateIntakeAndUrineTargets(intakeTargetMl: Int, urineTargetMl: Int) {
         viewModelScope.launch {
             userPreferences.updateIntakeAndUrineTargets(intakeTargetMl, urineTargetMl)
+        }
+    }
+
+    fun exitPreviewMode() {
+        viewModelScope.launch {
+            userPreferences.togglePreviewMode(false)
+        }
+    }
+
+    fun dismissSetupChecklist() {
+        viewModelScope.launch {
+            userPreferences.dismissSetupChecklist()
         }
     }
 }

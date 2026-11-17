@@ -48,13 +48,13 @@ data class FluidHistoryUiState(
     val selectedFilter: FluidStreamFilter = FluidStreamFilter.NET_BALANCE,
     val customStartDate: String = DateTimeUtils.getDaysAgoIso(7),
     val customEndDate: String = DateTimeUtils.getTodayIso(),
-    val currentNetBalanceMl: Int = 500,
-    val currentIntakeMl: Int = 3600,
-    val currentUrineMl: Int = 3100,
+    val currentNetBalanceMl: Int = 0,
+    val currentIntakeMl: Int = 0,
+    val currentUrineMl: Int = 0,
     val statusLabel: String = "Optimal Balance",
-    val averageIntakeMl: Int = 3480,
-    val averageUrineMl: Int = 3060,
-    val averageNetBalanceMl: Int = 420,
+    val averageIntakeMl: Int = 0,
+    val averageUrineMl: Int = 0,
+    val averageNetBalanceMl: Int = 0,
     val intakeTargetMl: Int = 3500,
     val urineTargetMl: Int = 2500,
     val chartPoints: List<FluidDayPoint> = emptyList(),
@@ -95,9 +95,9 @@ class FluidHistoryViewModel @Inject constructor(
         val todayIso = DateTimeUtils.getTodayIso()
         val latestDay = allDays.find { it.date == todayIso } ?: daysWithFluid.lastOrNull()
 
-        val currentIntake = latestDay?.fluidSummary?.totalIntakeMl ?: 3600
-        val currentUrine = latestDay?.fluidSummary?.totalUrineMl ?: 3100
-        val currentBalance = latestDay?.fluidSummary?.balanceMl ?: (currentIntake - currentUrine)
+        val currentIntake = latestDay?.fluidSummary?.totalIntakeMl ?: 0
+        val currentUrine = latestDay?.fluidSummary?.totalUrineMl ?: 0
+        val currentBalance = latestDay?.fluidSummary?.balanceMl ?: 0
 
         val isOptimal = currentBalance in -100..700
         val statusLabel = when {
@@ -109,9 +109,9 @@ class FluidHistoryViewModel @Inject constructor(
         val daysWithIntake = daysWithFluid.filter { it.fluidSummary.totalIntakeMl > 0 }
         val daysWithUrine = daysWithFluid.filter { it.fluidSummary.totalUrineMl > 0 }
 
-        val avgIntake = if (daysWithIntake.isNotEmpty()) daysWithIntake.map { it.fluidSummary.totalIntakeMl }.average().toInt() else 3480
-        val avgUrine = if (daysWithUrine.isNotEmpty()) daysWithUrine.map { it.fluidSummary.totalUrineMl }.average().toInt() else 3060
-        val avgBalance = if (daysWithFluid.isNotEmpty()) daysWithFluid.map { it.fluidSummary.balanceMl }.average().toInt() else 420
+        val avgIntake = if (daysWithIntake.isNotEmpty()) daysWithIntake.map { it.fluidSummary.totalIntakeMl }.average().toInt() else 0
+        val avgUrine = if (daysWithUrine.isNotEmpty()) daysWithUrine.map { it.fluidSummary.totalUrineMl }.average().toInt() else 0
+        val avgBalance = if (daysWithFluid.isNotEmpty()) daysWithFluid.map { it.fluidSummary.balanceMl }.average().toInt() else 0
 
         val dayFormatter = SimpleDateFormat("EEE", Locale.US)
         val shortDateFormatter = SimpleDateFormat("d MMM", Locale.US)
