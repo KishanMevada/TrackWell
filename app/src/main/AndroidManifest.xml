@@ -70,7 +70,7 @@
         <!-- Medicine Module Receivers -->
         <receiver
             android:name=".alarms.medicine.MedicineAlarmReceiver"
-            android:exported="true">
+            android:exported="false">
             <intent-filter>
                 <action android:name="com.trackwell.app.ACTION_MEDICINE_DUE" />
                 <action android:name="com.trackwell.app.ACTION_MEDICINE_FOLLOW_UP" />
@@ -79,7 +79,7 @@
 
         <receiver
             android:name=".notification.medicine.MedicineActionReceiver"
-            android:exported="true">
+            android:exported="false">
             <intent-filter>
                 <action android:name="com.trackwell.app.ACTION_MEDICINE_TOOK_IT" />
                 <action android:name="com.trackwell.app.ACTION_MEDICINE_SKIPPED" />
