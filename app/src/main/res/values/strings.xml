@@ -6,4 +6,6 @@
     <string name="shortcut_log_water_long">Log Water Intake in TrackWell</string>
     <string name="shortcut_log_sugar_short">Log Blood Sugar</string>
     <string name="shortcut_log_sugar_long">Log Blood Sugar in TrackWell</string>
+    <string name="shortcut_log_urine_short">Log Urine</string>
+    <string name="shortcut_log_urine_long">Log Urine Output in TrackWell</string>
 </resources>

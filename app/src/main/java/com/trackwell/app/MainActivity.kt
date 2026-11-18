@@ -164,6 +164,7 @@ class MainActivity : FragmentActivity() {
     lateinit var databaseSafetyManager: DatabaseSafetyManager
 
     private val pendingNavigationRoute = mutableStateOf<String?>(null)
+    private val pendingActionSheet = mutableStateOf<String?>(null)
 
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
@@ -179,20 +180,7 @@ class MainActivity : FragmentActivity() {
 
         val actionType = intent?.getStringExtra("action_type")
         if (actionType != null) {
-            lifecycleScope.launch(Dispatchers.IO) {
-                val amountStr = intent.getStringExtra("amount")
-                val amount = amountStr?.toIntOrNull() ?: 250
-                val result = when (actionType) {
-                    "LOG_FLUID" -> trackWellAppFunctions.executeLogFluidAction(amount, "INTAKE")
-                    "LOG_SUGAR" -> trackWellAppFunctions.executeLogBloodSugarAction(amount, "FASTING")
-                    else -> null
-                }
-                result?.let {
-                    withContext(Dispatchers.Main) {
-                        Toast.makeText(this@MainActivity, it.feedbackMessage, Toast.LENGTH_LONG).show()
-                    }
-                }
-            }
+            pendingActionSheet.value = actionType
         }
     }
 
@@ -234,7 +222,9 @@ class MainActivity : FragmentActivity() {
                     MainAppScaffold(
                         initialHasCompletedSetup = settings.hasCompletedInitialSetup,
                         pendingNavRoute = pendingNavigationRoute.value,
-                        onNavRouteHandled = { pendingNavigationRoute.value = null }
+                        pendingActionSheet = pendingActionSheet.value,
+                        onNavRouteHandled = { pendingNavigationRoute.value = null },
+                        onActionSheetHandled = { pendingActionSheet.value = null }
                     )
                 }
             }
@@ -248,7 +238,9 @@ class MainActivity : FragmentActivity() {
                             MainAppScaffold(
                                 initialHasCompletedSetup = settings.hasCompletedInitialSetup,
                                 pendingNavRoute = pendingNavigationRoute.value,
-                                onNavRouteHandled = { pendingNavigationRoute.value = null }
+                                pendingActionSheet = pendingActionSheet.value,
+                                onNavRouteHandled = { pendingNavigationRoute.value = null },
+                                onActionSheetHandled = { pendingActionSheet.value = null }
                             )
                         }
                     }
@@ -329,7 +321,9 @@ data class BottomNavItem(
 fun MainAppScaffold(
     initialHasCompletedSetup: Boolean = false,
     pendingNavRoute: String? = null,
-    onNavRouteHandled: () -> Unit = {}
+    pendingActionSheet: String? = null,
+    onNavRouteHandled: () -> Unit = {},
+    onActionSheetHandled: () -> Unit = {}
 ) {
     val navController = rememberNavController()
     val context = LocalContext.current
@@ -352,6 +346,25 @@ fun MainAppScaffold(
     var globalFluidType by remember { mutableStateOf(FluidType.INTAKE) }
     var showGlobalSugarSheet by remember { mutableStateOf(false) }
     var showGlobalWeightDialog by remember { mutableStateOf(false) }
+
+    androidx.compose.runtime.LaunchedEffect(pendingActionSheet) {
+        when (pendingActionSheet) {
+            "OPEN_FLUID_SHEET" -> {
+                globalFluidType = FluidType.INTAKE
+                showGlobalFluidSheet = true
+                onActionSheetHandled()
+            }
+            "OPEN_URINE_SHEET" -> {
+                globalFluidType = FluidType.URINE
+                showGlobalFluidSheet = true
+                onActionSheetHandled()
+            }
+            "OPEN_SUGAR_SHEET" -> {
+                showGlobalSugarSheet = true
+                onActionSheetHandled()
+            }
+        }
+    }
 
     val navItems = listOf(
         BottomNavItem(0, Screen.Today, "Today"),

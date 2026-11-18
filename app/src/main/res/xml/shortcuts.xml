@@ -15,11 +15,11 @@
                 android:key="amount" />
             <extra
                 android:name="action_type"
-                android:value="LOG_FLUID" />
+                android:value="OPEN_FLUID_SHEET" />
         </intent>
     </capability>
 
-    <!-- Custom Shortcut for Voice & Assistant: Log Water -->
+    <!-- Custom Shortcut: Log Water Intake (Opens Fluid Entry BottomSheet) -->
     <shortcut
         android:shortcutId="shortcut_log_water"
         android:enabled="true"
@@ -30,12 +30,28 @@
             android:action="android.intent.action.VIEW"
             android:targetPackage="com.trackwell.app"
             android:targetClass="com.trackwell.app.MainActivity">
-            <extra android:name="action_type" android:value="LOG_FLUID" />
+            <extra android:name="action_type" android:value="OPEN_FLUID_SHEET" />
         </intent>
         <capability-binding android:key="actions.intent.CREATE_HEALTH_OBSERVATION" />
     </shortcut>
 
-    <!-- Custom Shortcut for Voice & Assistant: Log Blood Sugar -->
+    <!-- Custom Shortcut: Log Urine Output (Opens Urine Entry BottomSheet) -->
+    <shortcut
+        android:shortcutId="shortcut_log_urine"
+        android:enabled="true"
+        android:icon="@mipmap/ic_launcher"
+        android:shortcutShortLabel="@string/shortcut_log_urine_short"
+        android:shortcutLongLabel="@string/shortcut_log_urine_long">
+        <intent
+            android:action="android.intent.action.VIEW"
+            android:targetPackage="com.trackwell.app"
+            android:targetClass="com.trackwell.app.MainActivity">
+            <extra android:name="action_type" android:value="OPEN_URINE_SHEET" />
+        </intent>
+        <capability-binding android:key="actions.intent.CREATE_HEALTH_OBSERVATION" />
+    </shortcut>
+
+    <!-- Custom Shortcut: Log Blood Sugar (Opens Sugar Entry BottomSheet) -->
     <shortcut
         android:shortcutId="shortcut_log_sugar"
         android:enabled="true"
@@ -46,7 +62,7 @@
             android:action="android.intent.action.VIEW"
             android:targetPackage="com.trackwell.app"
             android:targetClass="com.trackwell.app.MainActivity">
-            <extra android:name="action_type" android:value="LOG_SUGAR" />
+            <extra android:name="action_type" android:value="OPEN_SUGAR_SHEET" />
         </intent>
         <capability-binding android:key="actions.intent.CREATE_HEALTH_OBSERVATION" />
     </shortcut>
