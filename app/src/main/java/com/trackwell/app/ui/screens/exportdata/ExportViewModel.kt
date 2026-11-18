@@ -3,6 +3,7 @@ package com.trackwell.app.ui.screens.exportdata
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
+import androidx.compose.ui.graphics.ImageBitmap
 import androidx.core.content.FileProvider
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -11,6 +12,8 @@ import com.google.android.gms.common.api.ApiException
 import com.trackwell.app.data.preferences.AppSettings
 import com.trackwell.app.data.preferences.UserPreferences
 import com.trackwell.app.data.remote.GoogleDriveService
+import com.trackwell.app.domain.fhir.FhirQrCodeGenerator
+import com.trackwell.app.domain.fhir.FhirR4Exporter
 import com.trackwell.app.domain.repository.DailyHealthRepository
 import com.trackwell.app.domain.util.DateTimeUtils
 import com.trackwell.app.notification.GoogleDriveBackupScheduler
@@ -54,7 +57,9 @@ class ExportViewModel @Inject constructor(
     private val userPreferences: UserPreferences,
     private val backupRestoreManager: BackupRestoreManager,
     private val googleDriveBackupScheduler: GoogleDriveBackupScheduler,
-    val googleDriveService: GoogleDriveService
+    val googleDriveService: GoogleDriveService,
+    private val fhirR4Exporter: FhirR4Exporter,
+    private val fhirQrCodeGenerator: FhirQrCodeGenerator
 ) : ViewModel() {
 
     val settings: StateFlow<AppSettings> = userPreferences.settingsFlow.stateIn(
@@ -72,20 +77,23 @@ class ExportViewModel @Inject constructor(
     private val _exportState = MutableStateFlow<ExportState>(ExportState.Idle)
     val exportState: StateFlow<ExportState> = _exportState.asStateFlow()
 
+    private val _qrCodeBitmap = MutableStateFlow<ImageBitmap?>(null)
+    val qrCodeBitmap: StateFlow<ImageBitmap?> = _qrCodeBitmap.asStateFlow()
+
     fun handleGoogleSignInResult(intent: Intent?) {
         viewModelScope.launch {
             try {
                 val task = GoogleSignIn.getSignedInAccountFromIntent(intent)
                 val account = task.getResult(ApiException::class.java)
-                if (account != null && account.email != null) {
-                    val email = account.email!!
-                    userPreferences.updateGoogleDriveAccount(email)
-                    userPreferences.updateGoogleDriveBackupEnabled(true)
-                    googleDriveBackupScheduler.scheduleDailyBackup(
-                        settings.value.copy(isGoogleDriveBackupEnabled = true, googleDriveAccount = email)
-                    )
-                    _restoreMessage.emit("Connected to Google Drive as $email")
-                }
+                val email = account.email ?: account.account?.name ?: "Google Account"
+                userPreferences.updateGoogleDriveAccount(email)
+                userPreferences.updateGoogleDriveBackupEnabled(true)
+                googleDriveBackupScheduler.scheduleDailyBackup(
+                    settings.value.copy(isGoogleDriveBackupEnabled = true, googleDriveAccount = email)
+                )
+                _restoreMessage.emit("Connected to Google Drive as $email")
+            } catch (e: ApiException) {
+                _restoreMessage.emit("Google Sign-In failed (Code ${e.statusCode}): ${e.localizedMessage}")
             } catch (e: Exception) {
                 _restoreMessage.emit("Google Sign-In failed: ${e.localizedMessage}")
             }
@@ -118,7 +126,22 @@ class ExportViewModel @Inject constructor(
 
     fun backupToGoogleDriveNow() {
         viewModelScope.launch {
-            _exportState.value = ExportState.Generating("Creating & Uploading Google Drive Backup...")
+            var account = settings.value.googleDriveAccount
+            if (account.isBlank()) {
+                val signedInAccount = googleDriveService.getLastSignedInAccount()
+                if (signedInAccount != null && !signedInAccount.email.isNullOrBlank()) {
+                    account = signedInAccount.email!!
+                    userPreferences.updateGoogleDriveAccount(account)
+                }
+            }
+
+            if (account.isBlank()) {
+                _restoreMessage.emit("Please tap 'Tap to Sign in with Google' above to connect your account first.")
+                return@launch
+            }
+
+            _exportState.value = ExportState.Generating("Encrypting database & syncing to Google Drive...")
+            userPreferences.recordGoogleDriveBackupResult(System.currentTimeMillis(), "Syncing to Google Drive...")
             try {
                 val backupFile = backupRestoreManager.createEncryptedBackup(context)
                 val uploadResult = googleDriveService.uploadBackupFile(backupFile)
@@ -126,18 +149,17 @@ class ExportViewModel @Inject constructor(
 
                 if (uploadResult.isSuccess) {
                     val metadata = uploadResult.getOrNull()
-                    val account = settings.value.googleDriveAccount.ifBlank {
-                        googleDriveService.getLastSignedInAccount()?.email ?: "Google Drive"
-                    }
                     val status = "Synced to $account (${metadata?.fileName ?: backupFile.name})"
                     userPreferences.recordGoogleDriveBackupResult(now, status)
                     _exportState.value = ExportState.Idle
-                    _restoreMessage.emit("Successfully backed up to Google Drive AppData folder!")
+                    _restoreMessage.emit("Backup complete! Encrypted archive synced to Google Drive.")
                 } else {
                     val error = uploadResult.exceptionOrNull()?.localizedMessage ?: "Upload failed"
+                    userPreferences.recordGoogleDriveBackupResult(now, "Upload failed: $error")
                     _exportState.value = ExportState.Error("Cloud upload failed: $error")
                 }
             } catch (e: Exception) {
+                userPreferences.recordGoogleDriveBackupResult(System.currentTimeMillis(), "Backup error: ${e.localizedMessage}")
                 _exportState.value = ExportState.Error("Google Drive backup failed: ${e.localizedMessage}")
             }
         }
@@ -146,25 +168,32 @@ class ExportViewModel @Inject constructor(
     fun restoreFromGoogleDriveCloud() {
         viewModelScope.launch {
             _exportState.value = ExportState.Generating("Downloading backup from Google Drive...")
+            userPreferences.recordGoogleDriveBackupResult(System.currentTimeMillis(), "Downloading from Google Drive...")
             try {
                 val tempFile = File(context.cacheDir, "drive_restore.twbackup")
                 val downloadResult = googleDriveService.downloadBackupFile(tempFile)
                 if (downloadResult.isSuccess) {
                     _exportState.value = ExportState.Generating("Decrypting & Restoring records...")
                     val restoreResult = backupRestoreManager.restoreEncryptedBackup(tempFile)
+                    val now = System.currentTimeMillis()
                     if (restoreResult.isSuccess) {
                         val count = restoreResult.getOrNull() ?: 0
+                        val account = settings.value.googleDriveAccount.ifBlank { "Google Drive" }
+                        userPreferences.recordGoogleDriveBackupResult(now, "Restored $count records ($account)")
                         _exportState.value = ExportState.Idle
                         _restoreMessage.emit("Successfully restored $count records from Google Drive!")
                     } else {
                         val error = restoreResult.exceptionOrNull()?.localizedMessage ?: "Restore failed"
+                        userPreferences.recordGoogleDriveBackupResult(now, "Restore failed: $error")
                         _exportState.value = ExportState.Error("Restore failed: $error")
                     }
                 } else {
                     val error = downloadResult.exceptionOrNull()?.localizedMessage ?: "Download failed"
+                    userPreferences.recordGoogleDriveBackupResult(System.currentTimeMillis(), "Download failed: $error")
                     _exportState.value = ExportState.Error("Could not download backup from Google Drive: $error")
                 }
             } catch (e: Exception) {
+                userPreferences.recordGoogleDriveBackupResult(System.currentTimeMillis(), "Restore error: ${e.localizedMessage}")
                 _exportState.value = ExportState.Error("Google Drive restore error: ${e.localizedMessage}")
             }
         }
@@ -187,6 +216,42 @@ class ExportViewModel @Inject constructor(
                 _exportState.value = ExportState.Error("Restore error: ${e.localizedMessage}")
             }
         }
+    }
+
+    fun exportFhirR4() {
+        viewModelScope.launch {
+            _exportState.value = ExportState.Generating("Generating HL7 FHIR R4 Bundle...")
+            try {
+                val file = File(context.cacheDir, "TrackWell_FHIR_R4_Bundle.json")
+                fhirR4Exporter.exportFhirBundleToFile(file)
+                _exportState.value = ExportState.ReadyToShare(
+                    file = file,
+                    mimeType = "application/json",
+                    title = "HL7 FHIR R4 Medical Export"
+                )
+                _restoreMessage.emit("Generated HL7 FHIR R4 medical bundle!")
+            } catch (e: Exception) {
+                _exportState.value = ExportState.Error("FHIR Export failed: ${e.localizedMessage}")
+            }
+        }
+    }
+
+    fun generateClinicQrCode() {
+        viewModelScope.launch {
+            _exportState.value = ExportState.Generating("Generating Clinic QR Code...")
+            try {
+                val json = fhirR4Exporter.generateFhirBundleJson()
+                val bitmap = fhirQrCodeGenerator.generateQrImageBitmap(json, size = 600)
+                _qrCodeBitmap.value = bitmap
+                _exportState.value = ExportState.Idle
+            } catch (e: Exception) {
+                _exportState.value = ExportState.Error("QR Code generation failed: ${e.localizedMessage}")
+            }
+        }
+    }
+
+    fun clearClinicQrCode() {
+        _qrCodeBitmap.value = null
     }
 
     fun selectRange(range: ExportRange) {

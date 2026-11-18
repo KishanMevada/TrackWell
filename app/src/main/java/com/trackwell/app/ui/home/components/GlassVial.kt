@@ -27,6 +27,7 @@ import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.Layout
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.contentDescription
@@ -118,6 +119,7 @@ fun GlassVial(
                         bottomEnd = 25.ds
                     )
                 )
+                .graphicsLayer { }
                 .drawBehind {
                     val w = size.width
                     val h = size.height

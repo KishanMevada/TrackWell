@@ -588,3 +588,21 @@ fun BiologicalBackgroundCanvasPreview() {
         }
     }
 }
+
+/**
+ * Claymorphic Skeleton Shimmer modifier placeholder extension for zero pop-in loading transitions.
+ */
+fun Modifier.claymorphicShimmer(
+    visible: Boolean = true,
+    shape: androidx.compose.ui.graphics.Shape = RoundedCornerShape(16.dp)
+): Modifier = if (!visible) this else this
+    .clip(shape)
+    .background(
+        Brush.linearGradient(
+            listOf(
+                Color(0xFFF1F5F9),
+                Color(0xFFE2E8F0),
+                Color(0xFFF1F5F9)
+            )
+        )
+    )

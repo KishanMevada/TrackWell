@@ -1,5 +1,8 @@
 package com.trackwell.app.domain.model
 
+import androidx.compose.runtime.Immutable
+
+@Immutable
 data class DailyFluidSummary(
     val totalIntakeMl: Int = 0,
     val totalUrineMl: Int = 0,
@@ -8,6 +11,7 @@ data class DailyFluidSummary(
     val progress: Float = 0f      // Intake / Target (capped or displayed as ratio)
 )
 
+@Immutable
 data class DayOverview(
     val date: String,             // "yyyy-MM-dd"
     val morningWeightKg: Double? = null,
@@ -20,6 +24,7 @@ data class DayOverview(
     val medications: List<MedicationItem> = emptyList()
 )
 
+@Immutable
 data class PeriodAverages(
     val dayCount: Int = 0,
     val daysWithData: Int = 0,
@@ -33,6 +38,7 @@ data class PeriodAverages(
     val totalInsulinUnits: Double = 0.0
 )
 
+@Immutable
 data class OptionalMetrics(
     val id: Long = 0,
     val date: String,
@@ -44,6 +50,7 @@ data class OptionalMetrics(
     val note: String? = null
 )
 
+@Immutable
 data class MedicationItem(
     val id: Long = 0,
     val date: String,

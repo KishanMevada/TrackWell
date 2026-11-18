@@ -31,6 +31,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -77,6 +78,7 @@ fun FluidHistoryScreen(
     modifier: Modifier = Modifier
 ) {
     val uiState by viewModel.uiState.collectAsState()
+    val filteredHistoryDays by remember(uiState.historyDays) { derivedStateOf { uiState.historyDays } }
     val context = LocalContext.current
     val statusBarInset = WindowInsets.statusBars.asPaddingValues().calculateTopPadding()
     var showFilters by remember { mutableStateOf(false) }
@@ -705,7 +707,7 @@ fun FluidHistoryScreen(
                     }
                 }
             } else {
-                items(uiState.historyDays, key = { it.date }) { day ->
+                items(filteredHistoryDays, key = { it.date }) { day ->
                     FluidDayCardHydroPill(
                         day = day,
                         intakeTarget = uiState.intakeTargetMl,

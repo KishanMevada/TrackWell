@@ -107,6 +107,7 @@ fun SettingsScreen(
     var showReseedDialog by remember { mutableStateOf(false) }
     var showTargetDialog by remember { mutableStateOf(false) }
     var showPresetsDialog by remember { mutableStateOf(false) }
+    var showAdvancedAccordion by remember { mutableStateOf(false) }
 
     LaunchedEffect(Unit) {
         viewModel.seedMessage.collect { msg ->
@@ -233,9 +234,9 @@ fun SettingsScreen(
                     }
                 }
 
-                // 4. Section: Security & Privacy
+                // 3. Section: Security & Data Hub
                 item {
-                    ClaymorphicSectionHeader(title = "Security & Access")
+                    ClaymorphicSectionHeader(title = "Security & Data Hub")
                     Spacer(modifier = Modifier.height(8.dp))
                     ClaymorphicCardGroup {
                         ClaymorphicSwitchRow(
@@ -250,30 +251,10 @@ fun SettingsScreen(
                                 viewModel.updateBiometricLock(it)
                             }
                         )
-                    }
-                }
-
-                // 5. Section: Cloud Backup & Data
-                item {
-                    ClaymorphicSectionHeader(title = "Cloud Sync & Export")
-                    Spacer(modifier = Modifier.height(8.dp))
-                    ClaymorphicCardGroup {
-                        ClaymorphicSwitchRow(
-                            title = "Google Drive Auto-Backup",
-                            subtitle = if (settings.isGoogleDriveBackupEnabled) "Daily at ${settings.googleDriveBackupTime}" else "Off",
-                            icon = Icons.Default.CloudSync,
-                            iconBg = Color(0xFFE0F2FE),
-                            iconTint = Color(0xFF0284C7),
-                            checked = settings.isGoogleDriveBackupEnabled,
-                            onCheckedChange = {
-                                HapticFeedbackHelper.performClickHaptic(context)
-                                viewModel.toggleGoogleDriveAutoBackup(it)
-                            }
-                        )
                         ClaymorphicDivider()
                         ClaymorphicSettingsRow(
-                            title = "Export Reports & Backup",
-                            value = "PDF / Excel / Drive",
+                            title = "Export Reports, FHIR R4 & Cloud Sync",
+                            value = "PDF / Excel / Drive / FHIR",
                             icon = Icons.Default.Description,
                             iconBg = Color(0xFFECFDF5),
                             iconTint = Color(0xFF059669),
@@ -284,8 +265,8 @@ fun SettingsScreen(
                         )
                         ClaymorphicDivider()
                         ClaymorphicSettingsRow(
-                            title = "Smart Routine Import",
-                            value = "Scan, CSV, Excel",
+                            title = "Import Routine Data",
+                            value = "OCR Scan, CSV, Excel",
                             icon = Icons.Default.FileUpload,
                             iconBg = Color(0xFFEEF2FF),
                             iconTint = Color(0xFF4F46E5),
@@ -297,34 +278,49 @@ fun SettingsScreen(
                     }
                 }
 
-                // 6. Section: AI & Diagnostics
+                // 4. Section: Advanced & Diagnostics Hub
                 item {
-                    ClaymorphicSectionHeader(title = "AI & Clinical Data")
+                    ClaymorphicSectionHeader(title = "Advanced & Diagnostics")
                     Spacer(modifier = Modifier.height(8.dp))
                     ClaymorphicCardGroup {
                         ClaymorphicSettingsRow(
-                            title = "Gemini Vision AI Key",
-                            value = if (settings.geminiApiKey.isNotBlank()) "Configured" else "Optional",
+                            title = if (showAdvancedAccordion) "Hide Advanced Settings" else "Show Advanced & AI Settings",
+                            value = if (showAdvancedAccordion) "Tap to collapse" else "Gemini AI, Developer Tools",
                             icon = Icons.Default.AutoAwesome,
                             iconBg = Color(0xFFF3E8FF),
                             iconTint = Color(0xFF9333EA),
                             onClick = {
                                 HapticFeedbackHelper.performClickHaptic(context)
-                                showGeminiDialog = true
+                                showAdvancedAccordion = !showAdvancedAccordion
                             }
                         )
-                        ClaymorphicDivider()
-                        ClaymorphicSettingsRow(
-                            title = "Reload Clinical Dataset",
-                            value = "17-week verified logs",
-                            icon = Icons.Default.Refresh,
-                            iconBg = Color(0xFFF1F5F9),
-                            iconTint = Color(0xFF475569),
-                            onClick = {
-                                HapticFeedbackHelper.performClickHaptic(context)
-                                showReseedDialog = true
-                            }
-                        )
+
+                        if (showAdvancedAccordion) {
+                            ClaymorphicDivider()
+                            ClaymorphicSettingsRow(
+                                title = "Gemini Vision AI Key",
+                                value = if (settings.geminiApiKey.isNotBlank()) "Configured" else "Optional",
+                                icon = Icons.Default.AutoAwesome,
+                                iconBg = Color(0xFFF3E8FF),
+                                iconTint = Color(0xFF9333EA),
+                                onClick = {
+                                    HapticFeedbackHelper.performClickHaptic(context)
+                                    showGeminiDialog = true
+                                }
+                            )
+                            ClaymorphicDivider()
+                            ClaymorphicSettingsRow(
+                                title = "Reload Clinical Dataset",
+                                value = "Developer reseed utility",
+                                icon = Icons.Default.Refresh,
+                                iconBg = Color(0xFFF1F5F9),
+                                iconTint = Color(0xFF475569),
+                                onClick = {
+                                    HapticFeedbackHelper.performClickHaptic(context)
+                                    showReseedDialog = true
+                                }
+                            )
+                        }
                     }
                 }
 
@@ -393,6 +389,86 @@ fun SettingsScreen(
                 viewModel.reloadClinicalDataset()
             }
         )
+    }
+}
+
+// ==========================================
+// 4-Hub Redesign Preview
+// ==========================================
+
+@androidx.compose.ui.tooling.preview.Preview(showBackground = true, widthDp = 390, heightDp = 840)
+@Composable
+fun SettingsScreenRedesignPreview() {
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(Color(0xFFF8FAFC))
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(14.dp)
+        ) {
+            Text(
+                text = "Settings & Care Preferences",
+                fontSize = 20.sp,
+                fontWeight = FontWeight.Bold,
+                color = Color(0xFF0F172A)
+            )
+
+            // Hero Profile Card
+            ClaymorphicProfileCard(
+                userName = "Payal Mevada (Renal Care)",
+                subtitle = "Transplant: Oct 2024 • Nephrologist: Dr. Sharma",
+                onEditProfile = {}
+            )
+
+            // Clinical Targets Hub
+            ClaymorphicSectionHeader(title = "Clinical Targets & Goals")
+            ClaymorphicCardGroup {
+                ClaymorphicSettingsRow(
+                    title = "Fluid Balance Targets",
+                    value = "1500 ml in / 1200 ml out",
+                    icon = Icons.Default.WaterDrop,
+                    iconBg = Color(0xFFE0F2FE),
+                    iconTint = Color(0xFF0284C7),
+                    onClick = {}
+                )
+                ClaymorphicDivider()
+                ClaymorphicSettingsRow(
+                    title = "Blood Sugar Safe Zone",
+                    value = "80–130 mg/dL",
+                    icon = Icons.Default.Bloodtype,
+                    iconBg = Color(0xFFFEE2E2),
+                    iconTint = Color(0xFFEF4444),
+                    onClick = {}
+                )
+            }
+
+            // Security & Data Hub
+            ClaymorphicSectionHeader(title = "Security & Data Hub")
+            ClaymorphicCardGroup {
+                ClaymorphicSwitchRow(
+                    title = "Biometric Lock",
+                    subtitle = "Fingerprint / Face ID Protection",
+                    icon = Icons.Default.Fingerprint,
+                    iconBg = Color(0xFFDCFCE7),
+                    iconTint = Color(0xFF16A34A),
+                    checked = true,
+                    onCheckedChange = {}
+                )
+                ClaymorphicDivider()
+                ClaymorphicSettingsRow(
+                    title = "Export Reports & Cloud Sync",
+                    value = "PDF / Excel / Drive / FHIR R4",
+                    icon = Icons.Default.Description,
+                    iconBg = Color(0xFFECFDF5),
+                    iconTint = Color(0xFF059669),
+                    onClick = {}
+                )
+            }
+        }
     }
 }
 

@@ -2,4 +2,8 @@
     <string name="app_name">TrackWell</string>
     <string name="medical_disclaimer">TrackWell is a personal health logging tool and does not provide medical advice or recommend insulin doses. Please consult your nephrologist and healthcare team for targets and treatment adjustments.</string>
     <string name="default_web_client_id" translatable="false">538953225556-jtghcfpve4dq26jlg21q56onp2v9tvfd.apps.googleusercontent.com</string>
+    <string name="shortcut_log_water_short">Log Water</string>
+    <string name="shortcut_log_water_long">Log Water Intake in TrackWell</string>
+    <string name="shortcut_log_sugar_short">Log Blood Sugar</string>
+    <string name="shortcut_log_sugar_long">Log Blood Sugar in TrackWell</string>
 </resources>

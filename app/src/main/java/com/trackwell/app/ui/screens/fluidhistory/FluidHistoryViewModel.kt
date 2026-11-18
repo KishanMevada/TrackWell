@@ -8,6 +8,7 @@ import com.trackwell.app.domain.model.DayOverview
 import com.trackwell.app.domain.repository.DailyHealthRepository
 import com.trackwell.app.domain.util.DateTimeUtils
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -63,6 +64,7 @@ data class FluidHistoryUiState(
     val isLoading: Boolean = false
 )
 
+@OptIn(ExperimentalCoroutinesApi::class)
 @HiltViewModel
 class FluidHistoryViewModel @Inject constructor(
     private val dailyHealthRepository: DailyHealthRepository,

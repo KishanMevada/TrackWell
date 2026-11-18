@@ -28,6 +28,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
+import androidx.compose.foundation.Image
 import androidx.compose.material.icons.filled.AccountCircle
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.CloudDownload
@@ -36,7 +37,9 @@ import androidx.compose.material.icons.filled.CloudUpload
 import androidx.compose.material.icons.filled.Description
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Lock
+import androidx.compose.material.icons.filled.MedicalInformation
 import androidx.compose.material.icons.filled.PictureAsPdf
+import androidx.compose.material.icons.filled.QrCodeScanner
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material.icons.filled.TableChart
 import androidx.compose.material.icons.filled.Warning
@@ -95,6 +98,7 @@ fun ExportScreen(
     val selectedRange by viewModel.selectedRange.collectAsState()
     val exportState by viewModel.exportState.collectAsState()
     val settings by viewModel.settings.collectAsState()
+    val qrCodeBitmap by viewModel.qrCodeBitmap.collectAsState()
     val snackbarHostState = remember { SnackbarHostState() }
     val context = LocalContext.current
     val statusBarInset = WindowInsets.statusBars.asPaddingValues().calculateTopPadding()
@@ -370,30 +374,51 @@ fun ExportScreen(
 
                             Spacer(modifier = Modifier.height(10.dp))
 
+                            val isSyncing = exportState is ExportState.Generating ||
+                                    settings.lastGoogleDriveBackupStatus.contains("Syncing") ||
+                                    settings.lastGoogleDriveBackupStatus.contains("Downloading")
+
                             // Status Badge
                             Surface(
                                 shape = RoundedCornerShape(12.dp),
-                                color = if (settings.isGoogleDriveBackupEnabled) Color(0xFFDCFCE7) else Color(0xFFF1F5F9),
+                                color = when {
+                                    isSyncing -> Color(0xFFE0F2FE)
+                                    settings.isGoogleDriveBackupEnabled -> Color(0xFFDCFCE7)
+                                    else -> Color(0xFFF1F5F9)
+                                },
                                 modifier = Modifier.fillMaxWidth()
                             ) {
                                 Row(
                                     modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
                                     verticalAlignment = Alignment.CenterVertically
                                 ) {
-                                    Icon(
-                                        imageVector = Icons.Default.CheckCircle,
-                                        contentDescription = null,
-                                        tint = if (settings.isGoogleDriveBackupEnabled) Color(0xFF16A34A) else Color(0xFF94A3B8),
-                                        modifier = Modifier.size(16.dp)
-                                    )
+                                    if (isSyncing) {
+                                        CircularProgressIndicator(
+                                            modifier = Modifier.size(16.dp),
+                                            color = Color(0xFF0284C7),
+                                            strokeWidth = 2.dp
+                                        )
+                                    } else {
+                                        Icon(
+                                            imageVector = Icons.Default.CheckCircle,
+                                            contentDescription = null,
+                                            tint = if (settings.isGoogleDriveBackupEnabled) Color(0xFF16A34A) else Color(0xFF94A3B8),
+                                            modifier = Modifier.size(16.dp)
+                                        )
+                                    }
                                     Spacer(modifier = Modifier.width(8.dp))
                                     Text(
-                                        text = if (settings.isGoogleDriveBackupEnabled)
-                                            "Status: ${settings.lastGoogleDriveBackupStatus}"
-                                        else
-                                            "Status: Auto-backup paused",
+                                        text = when {
+                                            isSyncing -> "Status: ${settings.lastGoogleDriveBackupStatus}"
+                                            settings.isGoogleDriveBackupEnabled -> "Status: ${settings.lastGoogleDriveBackupStatus}"
+                                            else -> "Status: Auto-backup paused"
+                                        },
                                         style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.SemiBold, fontSize = 12.sp),
-                                        color = if (settings.isGoogleDriveBackupEnabled) Color(0xFF166534) else Color(0xFF64748B)
+                                        color = when {
+                                            isSyncing -> Color(0xFF0369A1)
+                                            settings.isGoogleDriveBackupEnabled -> Color(0xFF166534)
+                                            else -> Color(0xFF64748B)
+                                        }
                                     )
                                 }
                             }
@@ -406,9 +431,10 @@ fun ExportScreen(
                                 horizontalArrangement = Arrangement.spacedBy(10.dp)
                             ) {
                                 Surface(
-                                    onClick = { viewModel.restoreFromGoogleDriveCloud() },
+                                    onClick = { if (!isSyncing) viewModel.restoreFromGoogleDriveCloud() },
+                                    enabled = !isSyncing,
                                     shape = RoundedCornerShape(16.dp),
-                                    color = Color(0xFFF8FAFC),
+                                    color = if (isSyncing) Color(0xFFF1F5F9) else Color(0xFFF8FAFC),
                                     border = BorderStroke(1.dp, Color(0xFFE2E8F0)),
                                     modifier = Modifier
                                         .weight(1f)
@@ -426,17 +452,128 @@ fun ExportScreen(
                                 }
 
                                 Button(
-                                    onClick = { viewModel.backupToGoogleDriveNow() },
+                                    onClick = { if (!isSyncing) viewModel.backupToGoogleDriveNow() },
+                                    enabled = !isSyncing,
                                     modifier = Modifier
                                         .weight(1f)
                                         .height(46.dp)
                                         .shadow(elevation = 4.dp, shape = RoundedCornerShape(16.dp), spotColor = Color(0x300284C7)),
                                     shape = RoundedCornerShape(16.dp),
-                                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF0284C7))
+                                    colors = ButtonDefaults.buttonColors(
+                                        containerColor = Color(0xFF0284C7),
+                                        disabledContainerColor = Color(0xFF94A3B8)
+                                    )
                                 ) {
-                                    Icon(imageVector = Icons.Default.CloudUpload, contentDescription = null, tint = Color.White, modifier = Modifier.size(18.dp))
+                                    if (isSyncing) {
+                                        CircularProgressIndicator(
+                                            modifier = Modifier.size(18.dp),
+                                            color = Color.White,
+                                            strokeWidth = 2.dp
+                                        )
+                                        Spacer(modifier = Modifier.width(6.dp))
+                                        Text("Syncing...", fontSize = 13.sp, fontWeight = FontWeight.Bold, color = Color.White)
+                                    } else {
+                                        Icon(imageVector = Icons.Default.CloudUpload, contentDescription = null, tint = Color.White, modifier = Modifier.size(18.dp))
+                                        Spacer(modifier = Modifier.width(6.dp))
+                                        Text("Backup Now", fontSize = 13.sp, fontWeight = FontWeight.Bold, color = Color.White)
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+
+                // Section 1.5: FHIR R4 Medical Standard & Clinic QR Code Card
+                item {
+                    Surface(
+                        shape = RoundedCornerShape(24.dp),
+                        color = Color.White,
+                        border = BorderStroke(1.dp, Color(0xFFF1F5F9)),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .homeCardShadow(cornerRadius = 24.dp)
+                    ) {
+                        Column(modifier = Modifier.padding(20.dp)) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Box(
+                                    modifier = Modifier
+                                        .size(46.dp)
+                                        .shadow(elevation = 3.dp, shape = RoundedCornerShape(14.dp), spotColor = Color(0x300284C7))
+                                        .clip(RoundedCornerShape(14.dp))
+                                        .background(
+                                            Brush.radialGradient(
+                                                listOf(Color(0xFFEEF2FF), Color(0xFFC7D2FE))
+                                            )
+                                        ),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.MedicalInformation,
+                                        contentDescription = null,
+                                        tint = Color(0xFF4338CA),
+                                        modifier = Modifier.size(24.dp)
+                                    )
+                                }
+                                Spacer(modifier = Modifier.width(14.dp))
+                                Column {
+                                    Text(
+                                        text = "HL7 FHIR R4 Hospital Interoperability",
+                                        style = MaterialTheme.typography.titleMedium.copy(
+                                            fontWeight = FontWeight.Bold,
+                                            fontSize = 16.sp
+                                        ),
+                                        color = Color(0xFF0F172A)
+                                    )
+                                    Spacer(modifier = Modifier.height(2.dp))
+                                    Text(
+                                        text = "LOINC & RxNorm standard hospital format",
+                                        style = MaterialTheme.typography.bodySmall.copy(fontSize = 12.sp),
+                                        color = Color(0xFF64748B)
+                                    )
+                                }
+                            }
+
+                            Spacer(modifier = Modifier.height(14.dp))
+
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(10.dp)
+                            ) {
+                                Surface(
+                                    onClick = { viewModel.exportFhirR4() },
+                                    shape = RoundedCornerShape(16.dp),
+                                    color = Color(0xFFEEF2FF),
+                                    border = BorderStroke(1.dp, Color(0xFFC7D2FE)),
+                                    modifier = Modifier
+                                        .weight(1f)
+                                        .height(46.dp)
+                                ) {
+                                    Row(
+                                        modifier = Modifier.fillMaxSize(),
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.Center
+                                    ) {
+                                        Icon(imageVector = Icons.Default.Description, contentDescription = null, tint = Color(0xFF3730A3), modifier = Modifier.size(18.dp))
+                                        Spacer(modifier = Modifier.width(6.dp))
+                                        Text("Export FHIR", fontSize = 13.sp, fontWeight = FontWeight.Bold, color = Color(0xFF3730A3))
+                                    }
+                                }
+
+                                Button(
+                                    onClick = { viewModel.generateClinicQrCode() },
+                                    modifier = Modifier
+                                        .weight(1f)
+                                        .height(46.dp)
+                                        .shadow(elevation = 4.dp, shape = RoundedCornerShape(16.dp), spotColor = Color(0x304338CA)),
+                                    shape = RoundedCornerShape(16.dp),
+                                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF4338CA))
+                                ) {
+                                    Icon(imageVector = Icons.Default.QrCodeScanner, contentDescription = null, tint = Color.White, modifier = Modifier.size(18.dp))
                                     Spacer(modifier = Modifier.width(6.dp))
-                                    Text("Backup Now", fontSize = 13.sp, fontWeight = FontWeight.Bold, color = Color.White)
+                                    Text("Clinic QR", fontSize = 13.sp, fontWeight = FontWeight.Bold, color = Color.White)
                                 }
                             }
                         }
@@ -839,6 +976,54 @@ fun ExportScreen(
                         ) {
                             Text("Save", fontWeight = FontWeight.Bold, color = Color.White)
                         }
+                    }
+                }
+            }
+        }
+    }
+
+    qrCodeBitmap?.let { bitmap ->
+        BasicAlertDialog(
+            onDismissRequest = { viewModel.clearClinicQrCode() }
+        ) {
+            Surface(
+                shape = RoundedCornerShape(28.dp),
+                color = Color.White,
+                modifier = Modifier.padding(16.dp)
+            ) {
+                Column(
+                    modifier = Modifier.padding(24.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Text(
+                        "Hospital Clinic QR Code",
+                        style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold, fontSize = 18.sp),
+                        color = Color(0xFF0F172A)
+                    )
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text(
+                        "Show to nephrologist or clinic nurse to scan patient records into hospital EMR",
+                        style = MaterialTheme.typography.bodySmall.copy(fontSize = 12.sp),
+                        color = Color(0xFF64748B),
+                        textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                    )
+                    Spacer(modifier = Modifier.height(16.dp))
+                    Image(
+                        bitmap = bitmap,
+                        contentDescription = "Clinic QR Code",
+                        modifier = Modifier
+                            .size(240.dp)
+                            .clip(RoundedCornerShape(16.dp))
+                            .border(1.dp, Color(0xFFE2E8F0), RoundedCornerShape(16.dp))
+                    )
+                    Spacer(modifier = Modifier.height(20.dp))
+                    Button(
+                        onClick = { viewModel.clearClinicQrCode() },
+                        modifier = Modifier.fillMaxWidth().height(46.dp),
+                        shape = RoundedCornerShape(14.dp),
+                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF0284C7))
+                    ) {
+                        Text("Close", fontWeight = FontWeight.Bold, fontSize = 14.sp)
                     }
                 }
             }

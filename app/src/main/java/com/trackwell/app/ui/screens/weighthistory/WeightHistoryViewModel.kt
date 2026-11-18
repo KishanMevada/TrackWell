@@ -9,6 +9,7 @@ import com.trackwell.app.domain.repository.DailyHealthRepository
 import com.trackwell.app.domain.util.DateTimeUtils
 import com.trackwell.app.ui.home.components.WeightPoint
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -50,6 +51,7 @@ data class WeightHistoryUiState(
     val isLoading: Boolean = false
 )
 
+@OptIn(ExperimentalCoroutinesApi::class)
 @HiltViewModel
 class WeightHistoryViewModel @Inject constructor(
     private val dailyHealthRepository: DailyHealthRepository,

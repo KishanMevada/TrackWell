@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="utf-8"?>
+<shortcuts xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <!-- Google Assistant Built-in Intent (BII) for Health Observation Logging -->
+    <capability android:name="actions.intent.CREATE_HEALTH_OBSERVATION">
+        <intent
+            android:action="android.intent.action.VIEW"
+            android:targetPackage="com.trackwell.app"
+            android:targetClass="com.trackwell.app.MainActivity">
+            <parameter
+                android:name="healthObservation.type"
+                android:key="type" />
+            <parameter
+                android:name="healthObservation.value"
+                android:key="amount" />
+            <extra
+                android:name="action_type"
+                android:value="LOG_FLUID" />
+        </intent>
+    </capability>
+
+    <!-- Custom Shortcut for Voice & Assistant: Log Water -->
+    <shortcut
+        android:shortcutId="shortcut_log_water"
+        android:enabled="true"
+        android:icon="@mipmap/ic_launcher"
+        android:shortcutShortLabel="@string/shortcut_log_water_short"
+        android:shortcutLongLabel="@string/shortcut_log_water_long">
+        <intent
+            android:action="android.intent.action.VIEW"
+            android:targetPackage="com.trackwell.app"
+            android:targetClass="com.trackwell.app.MainActivity">
+            <extra android:name="action_type" android:value="LOG_FLUID" />
+        </intent>
+        <capability-binding android:key="actions.intent.CREATE_HEALTH_OBSERVATION" />
+    </shortcut>
+
+    <!-- Custom Shortcut for Voice & Assistant: Log Blood Sugar -->
+    <shortcut
+        android:shortcutId="shortcut_log_sugar"
+        android:enabled="true"
+        android:icon="@mipmap/ic_launcher"
+        android:shortcutShortLabel="@string/shortcut_log_sugar_short"
+        android:shortcutLongLabel="@string/shortcut_log_sugar_long">
+        <intent
+            android:action="android.intent.action.VIEW"
+            android:targetPackage="com.trackwell.app"
+            android:targetClass="com.trackwell.app.MainActivity">
+            <extra android:name="action_type" android:value="LOG_SUGAR" />
+        </intent>
+        <capability-binding android:key="actions.intent.CREATE_HEALTH_OBSERVATION" />
+    </shortcut>
+
+</shortcuts>

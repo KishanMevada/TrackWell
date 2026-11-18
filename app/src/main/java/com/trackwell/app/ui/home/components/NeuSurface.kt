@@ -15,6 +15,7 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.nativeCanvas
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -52,7 +53,7 @@ fun Modifier.neuRaisedL(
     cornerRadius: Dp = 24.dp,
     customTopRadius: Dp? = null,
     customBottomRadius: Dp? = null
-): Modifier = this.drawBehind {
+): Modifier = this.graphicsLayer { }.drawBehind {
     val topRad = (customTopRadius ?: cornerRadius).toPx()
     val botRad = (customBottomRadius ?: cornerRadius).toPx()
     val width = size.width

@@ -88,6 +88,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.trackwell.app.data.local.database.DatabaseSeeder
+import com.trackwell.app.data.local.database.DatabaseSafetyManager
 import com.trackwell.app.data.preferences.UserPreferences
 import com.trackwell.app.domain.model.FluidType
 import com.trackwell.app.domain.model.SugarSlot
@@ -130,6 +131,8 @@ import com.trackwell.app.ui.screens.today.components.QuickAddBottomSheet
 import com.trackwell.app.ui.screens.today.components.SugarEntryBottomSheet
 import com.trackwell.app.ui.home.components.RenalBodyFlowBackdrop
 import com.trackwell.app.ui.home.components.VascularBackground
+import android.widget.Toast
+import com.trackwell.app.data.appfunctions.TrackWellAppFunctions
 import com.trackwell.app.ui.theme.IntakeAqua
 import com.trackwell.app.ui.theme.TargetTokens
 import com.trackwell.app.ui.theme.TrackWellTheme
@@ -139,6 +142,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.withContext
 import javax.inject.Inject
 
 @AndroidEntryPoint
@@ -153,6 +157,12 @@ class MainActivity : FragmentActivity() {
     @Inject
     lateinit var googleDriveBackupScheduler: GoogleDriveBackupScheduler
 
+    @Inject
+    lateinit var trackWellAppFunctions: TrackWellAppFunctions
+
+    @Inject
+    lateinit var databaseSafetyManager: DatabaseSafetyManager
+
     private val pendingNavigationRoute = mutableStateOf<String?>(null)
 
     override fun onNewIntent(intent: Intent) {
@@ -166,11 +176,34 @@ class MainActivity : FragmentActivity() {
         if (navTo == "medicine") {
             pendingNavigationRoute.value = Screen.Medicine.route
         }
+
+        val actionType = intent?.getStringExtra("action_type")
+        if (actionType != null) {
+            lifecycleScope.launch(Dispatchers.IO) {
+                val amountStr = intent.getStringExtra("amount")
+                val amount = amountStr?.toIntOrNull() ?: 250
+                val result = when (actionType) {
+                    "LOG_FLUID" -> trackWellAppFunctions.executeLogFluidAction(amount, "INTAKE")
+                    "LOG_SUGAR" -> trackWellAppFunctions.executeLogBloodSugarAction(amount, "FASTING")
+                    else -> null
+                }
+                result?.let {
+                    withContext(Dispatchers.Main) {
+                        Toast.makeText(this@MainActivity, it.feedbackMessage, Toast.LENGTH_LONG).show()
+                    }
+                }
+            }
+        }
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         enableEdgeToEdge()
         super.onCreate(savedInstanceState)
+
+        // Perform physical database pre-launch safety backup asynchronously
+        lifecycleScope.launch(Dispatchers.IO) {
+            databaseSafetyManager.performPreLaunchSafetyBackup()
+        }
 
         handleIntentNavigation(intent)
 

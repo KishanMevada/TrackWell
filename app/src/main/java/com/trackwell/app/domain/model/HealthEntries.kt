@@ -1,5 +1,8 @@
 package com.trackwell.app.domain.model
 
+import androidx.compose.runtime.Immutable
+
+@Immutable
 data class FluidEntry(
     val id: Long = 0,
     val date: String,          // Format: "yyyy-MM-dd"
@@ -9,6 +12,7 @@ data class FluidEntry(
     val note: String? = null
 )
 
+@Immutable
 data class SugarEntry(
     val id: Long = 0,
     val date: String,          // Format: "yyyy-MM-dd"

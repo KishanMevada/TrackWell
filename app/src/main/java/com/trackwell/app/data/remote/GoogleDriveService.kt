@@ -14,7 +14,6 @@ import com.google.api.client.json.gson.GsonFactory
 import com.google.api.services.drive.Drive
 import com.google.api.services.drive.DriveScopes
 import com.google.api.services.drive.model.File as DriveFile
-import com.trackwell.app.R
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -44,14 +43,11 @@ class GoogleDriveService @Inject constructor(
      * Build GoogleSignInClient requesting standard email and appDataFolder drive scopes.
      */
     fun getGoogleSignInClient(): GoogleSignInClient {
-        val webClientId = context.getString(R.string.default_web_client_id)
-        val gsoBuilder = GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
+        val gso = GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
             .requestEmail()
             .requestScopes(Scope(DriveScopes.DRIVE_APPDATA))
-        if (webClientId.isNotBlank()) {
-            gsoBuilder.requestIdToken(webClientId)
-        }
-        return GoogleSignIn.getClient(context, gsoBuilder.build())
+            .build()
+        return GoogleSignIn.getClient(context, gso)
     }
 
     /**

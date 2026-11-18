@@ -33,6 +33,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -86,6 +87,7 @@ fun BloodSugarHistoryScreen(
     modifier: Modifier = Modifier
 ) {
     val uiState by viewModel.uiState.collectAsState()
+    val filteredHistoryDays by remember(uiState.historyDays) { derivedStateOf { uiState.historyDays } }
     val context = LocalContext.current
     val statusBarInset = WindowInsets.statusBars.asPaddingValues().calculateTopPadding()
     var showSugarSheet by remember { mutableStateOf(false) }
@@ -593,7 +595,7 @@ fun BloodSugarHistoryScreen(
                     }
                 }
             } else {
-                items(uiState.historyDays, key = { it.date }) { day ->
+                items(filteredHistoryDays, key = { it.date }) { day ->
                     SugarDayEntryItem(
                         day = day,
                         thresholds = uiState.appSettings.thresholdSettings,

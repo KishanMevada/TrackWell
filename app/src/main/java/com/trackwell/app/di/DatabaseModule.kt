@@ -86,7 +86,7 @@ object DatabaseModule {
             "trackwell.db"
         )
         .addMigrations(MIGRATION_1_2)
-        .fallbackToDestructiveMigration()
+        .fallbackToDestructiveMigrationOnDowngrade()
         .build()
     }
 

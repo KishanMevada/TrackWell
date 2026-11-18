@@ -20,14 +20,14 @@ class CalculatePeriodAveragesUseCase @Inject constructor() {
             Math.round((sum / daysWithWeight.size) * 100.0) / 100.0
         } else 0.0
 
-        val avgIntake = if (daysWithAnyFluid.isNotEmpty()) {
-            val sum = daysWithAnyFluid.sumOf { it.fluidSummary.totalIntakeMl }
-            Math.round((sum.toDouble() / daysWithAnyFluid.size) * 10.0) / 10.0
+        val avgIntake = if (daysWithIntake.isNotEmpty()) {
+            val sum = daysWithIntake.sumOf { it.fluidSummary.totalIntakeMl }
+            Math.round((sum.toDouble() / daysWithIntake.size) * 10.0) / 10.0
         } else 0.0
 
-        val avgUrine = if (daysWithAnyFluid.isNotEmpty()) {
-            val sum = daysWithAnyFluid.sumOf { it.fluidSummary.totalUrineMl }
-            Math.round((sum.toDouble() / daysWithAnyFluid.size) * 10.0) / 10.0
+        val avgUrine = if (daysWithUrine.isNotEmpty()) {
+            val sum = daysWithUrine.sumOf { it.fluidSummary.totalUrineMl }
+            Math.round((sum.toDouble() / daysWithUrine.size) * 10.0) / 10.0
         } else 0.0
 
         val avgBalance = if (daysWithAnyFluid.isNotEmpty()) {
