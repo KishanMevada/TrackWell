@@ -10,4 +10,5 @@
     <color name="sugar_amber">#EF6C00</color>
     <color name="background_light">#F8FAF9</color>
     <color name="surface_light">#FFFFFF</color>
+    <color name="splash_background">#F3FAFF</color>
 </resources>

@@ -144,6 +144,9 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withContext
 import javax.inject.Inject
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
+import com.trackwell.app.ui.splash.TrackWellAnimatedSplash
 
 @AndroidEntryPoint
 class MainActivity : FragmentActivity() {
@@ -185,6 +188,19 @@ class MainActivity : FragmentActivity() {
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
+
+        val splashScreen = installSplashScreen()
+
+        splashScreen.setOnExitAnimationListener { provider ->
+            provider.view.animate()
+                .alpha(0f)
+                .scaleX(0.94f)
+                .scaleY(0.94f)
+                .setDuration(220L)
+                .withEndAction { provider.remove() }
+                .start()
+        }
+
         enableEdgeToEdge()
         super.onCreate(savedInstanceState)
 
@@ -208,29 +224,51 @@ class MainActivity : FragmentActivity() {
 
         setContent {
             TrackWellTheme {
-                var isUnlocked by remember { mutableStateOf(!requiresBiometric) }
+                var showBrandSplash by rememberSaveable {
+                    mutableStateOf(true)
+                }
 
-                if (!isUnlocked) {
-                    BiometricLockScreen(
-                        onAuthenticate = {
-                            showBiometricPrompt { success ->
-                                if (success) isUnlocked = true
+                var isUnlocked by rememberSaveable {
+                    mutableStateOf(!requiresBiometric)
+                }
+
+                when {
+                    showBrandSplash -> {
+                        TrackWellAnimatedSplash(
+                            onFinished = {
+                                showBrandSplash = false
                             }
-                        }
-                    )
-                } else {
-                    MainAppScaffold(
-                        initialHasCompletedSetup = settings.hasCompletedInitialSetup,
-                        pendingNavRoute = pendingNavigationRoute.value,
-                        pendingActionSheet = pendingActionSheet.value,
-                        onNavRouteHandled = { pendingNavigationRoute.value = null },
-                        onActionSheetHandled = { pendingActionSheet.value = null }
-                    )
+                        )
+                    }
+
+                    !isUnlocked -> {
+                        BiometricLockScreen(
+                            onAuthenticate = {
+                                showBiometricPrompt { success ->
+                                    if (success) isUnlocked = true
+                                }
+                            }
+                        )
+                    }
+
+                    else -> {
+                        MainAppScaffold(
+                            initialHasCompletedSetup = settings.hasCompletedInitialSetup,
+                            pendingNavRoute = pendingNavigationRoute.value,
+                            pendingActionSheet = pendingActionSheet.value,
+                            onNavRouteHandled = {
+                                pendingNavigationRoute.value = null
+                            },
+                            onActionSheetHandled = {
+                                pendingActionSheet.value = null
+                            }
+                        )
+                    }
                 }
             }
         }
 
-        if (requiresBiometric) {
+        /*if (requiresBiometric) {
             showBiometricPrompt { success ->
                 if (success) {
                     setContent {
@@ -246,7 +284,7 @@ class MainActivity : FragmentActivity() {
                     }
                 }
             }
-        }
+        }*/
     }
 
     private fun showBiometricPrompt(onResult: (Boolean) -> Unit) {

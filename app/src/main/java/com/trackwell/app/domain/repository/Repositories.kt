@@ -39,6 +39,7 @@ interface DailyHealthRepository {
     fun getPeriodAverages(startDate: String, endDate: String): Flow<PeriodAverages>
     fun getAllDaysInRange(startDate: String, endDate: String): Flow<List<DayOverview>>
     suspend fun getAllDaysListInRange(startDate: String, endDate: String): List<DayOverview>
+    suspend fun getEarliestRecordDate(): String
     
     fun observeOptionalMetrics(date: String): Flow<OptionalMetrics?>
     suspend fun saveOptionalMetrics(metrics: OptionalMetrics): Long

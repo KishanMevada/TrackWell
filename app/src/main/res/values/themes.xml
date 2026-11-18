@@ -7,4 +7,10 @@
         <item name="android:windowBackground">@android:color/transparent</item>
         <item name="android:windowIsFloating">true</item>
     </style>
+    <style name="Theme.TrackWell.Starting" parent="Theme.SplashScreen">
+        <item name="windowSplashScreenBackground">@color/splash_background</item>
+        <item name="windowSplashScreenAnimatedIcon">@mipmap/ic_launcher</item>
+        <item name="postSplashScreenTheme">@style/Theme.TrackWell</item>
+        <item name="windowSplashScreenAnimationDuration">250</item>
+    </style>
 </resources>

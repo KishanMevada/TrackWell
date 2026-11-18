@@ -31,6 +31,9 @@ interface DailyLogDao {
     @Query("SELECT * FROM daily_logs WHERE date BETWEEN :startDate AND :endDate ORDER BY date ASC")
     suspend fun getDailyLogsListInRange(startDate: String, endDate: String): List<DailyLogEntity>
 
+    @Query("SELECT date FROM daily_logs ORDER BY date ASC LIMIT 1")
+    suspend fun getEarliestDate(): String?
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertOrUpdate(dailyLog: DailyLogEntity)
 
@@ -57,6 +60,9 @@ interface FluidEntryDao {
 
     @Query("SELECT * FROM fluid_entries WHERE date BETWEEN :startDate AND :endDate ORDER BY timestamp ASC")
     suspend fun getEntriesListInRange(startDate: String, endDate: String): List<FluidEntryEntity>
+
+    @Query("SELECT date FROM fluid_entries ORDER BY date ASC LIMIT 1")
+    suspend fun getEarliestDate(): String?
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insert(entry: FluidEntryEntity): Long
@@ -99,6 +105,9 @@ interface SugarEntryDao {
 
     @Query("SELECT * FROM sugar_entries WHERE date BETWEEN :startDate AND :endDate ORDER BY date ASC, timestamp ASC")
     suspend fun getEntriesListInRange(startDate: String, endDate: String): List<SugarEntryEntity>
+
+    @Query("SELECT date FROM sugar_entries ORDER BY date ASC LIMIT 1")
+    suspend fun getEarliestDate(): String?
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertOrUpdate(entry: SugarEntryEntity): Long

@@ -40,12 +40,17 @@ enum class ExportRange(val days: Int, val label: String) {
     FOURTEEN_DAYS(14, "Last 14 Days"),
     THIRTY_DAYS(30, "Last 30 Days"),
     NINETY_DAYS(90, "Last 90 Days"),
-    ALL_TIME(125, "All Records (17W)")
+    ALL_TIME(0, "All Records")
 }
 
 sealed class ExportState {
     data object Idle : ExportState()
-    data class Generating(val message: String) : ExportState()
+    data class Generating(
+        val message: String,
+        val progressPercent: Int? = null,
+        val bytesTransferred: Long = 0L,
+        val totalBytes: Long = 0L
+    ) : ExportState()
     data class ReadyToShare(val file: File, val mimeType: String, val title: String) : ExportState()
     data class Error(val message: String) : ExportState()
 }
@@ -93,7 +98,13 @@ class ExportViewModel @Inject constructor(
                 )
                 _restoreMessage.emit("Connected to Google Drive as $email")
             } catch (e: ApiException) {
-                _restoreMessage.emit("Google Sign-In failed (Code ${e.statusCode}): ${e.localizedMessage}")
+                val details = when (e.statusCode) {
+                    10 -> "Code 10 (DEVELOPER_ERROR): Check SHA-1 fingerprint & OAuth Client ID in Google Cloud Console."
+                    12500 -> "Code 12500: Google Sign-In failed. Ensure Google Drive API is enabled in Cloud Console."
+                    4 -> "Code 4: Sign-in required. Please try again."
+                    else -> "Code ${e.statusCode}: ${e.localizedMessage}"
+                }
+                _restoreMessage.emit("Google Sign-In failed: $details")
             } catch (e: Exception) {
                 _restoreMessage.emit("Google Sign-In failed: ${e.localizedMessage}")
             }
@@ -126,54 +137,90 @@ class ExportViewModel @Inject constructor(
 
     fun backupToGoogleDriveNow() {
         viewModelScope.launch {
-            var account = settings.value.googleDriveAccount
-            if (account.isBlank()) {
-                val signedInAccount = googleDriveService.getLastSignedInAccount()
-                if (signedInAccount != null && !signedInAccount.email.isNullOrBlank()) {
-                    account = signedInAccount.email!!
-                    userPreferences.updateGoogleDriveAccount(account)
-                }
-            }
-
-            if (account.isBlank()) {
-                _restoreMessage.emit("Please tap 'Tap to Sign in with Google' above to connect your account first.")
+            val signedInAccount = googleDriveService.getLastSignedInAccount()
+            if (signedInAccount == null) {
+                _restoreMessage.emit("Google Account is not authenticated. Tap 'Connected Account' to sign in with Google.")
+                _exportState.value = ExportState.Error("Google Account is not connected or missing Drive permissions. Tap 'Connected Account' to sign in.")
+                userPreferences.recordGoogleDriveBackupResult(System.currentTimeMillis(), "Not connected: Missing Drive permissions")
                 return@launch
             }
 
-            _exportState.value = ExportState.Generating("Encrypting database & syncing to Google Drive...")
+            val account = signedInAccount.email ?: settings.value.googleDriveAccount.ifBlank { "Google Account" }
+            if (account != settings.value.googleDriveAccount) {
+                userPreferences.updateGoogleDriveAccount(account)
+            }
+
+            _exportState.value = ExportState.Generating("Encrypting database & preparing backup...", progressPercent = 0)
+            showProgressNotification("Encrypting Database", account, 0, 0, 0)
             userPreferences.recordGoogleDriveBackupResult(System.currentTimeMillis(), "Syncing to Google Drive...")
+
             try {
                 val backupFile = backupRestoreManager.createEncryptedBackup(context)
-                val uploadResult = googleDriveService.uploadBackupFile(backupFile)
-                val now = System.currentTimeMillis()
 
+                val uploadResult = googleDriveService.uploadBackupFile(backupFile) { percent, bytes, total ->
+                    val transferredStr = formatBytes(bytes)
+                    val totalStr = formatBytes(total)
+                    val msg = "Uploading to Google Drive: $percent% ($transferredStr / $totalStr)"
+
+                    _exportState.value = ExportState.Generating(
+                        message = msg,
+                        progressPercent = percent,
+                        bytesTransferred = bytes,
+                        totalBytes = total
+                    )
+                    showProgressNotification("Backing up to Google Drive", account, percent, bytes, total)
+                }
+
+                val now = System.currentTimeMillis()
                 if (uploadResult.isSuccess) {
                     val metadata = uploadResult.getOrNull()
                     val status = "Synced to $account (${metadata?.fileName ?: backupFile.name})"
                     userPreferences.recordGoogleDriveBackupResult(now, status)
                     _exportState.value = ExportState.Idle
-                    _restoreMessage.emit("Backup complete! Encrypted archive synced to Google Drive.")
+                    _restoreMessage.emit("Backup complete (100%)! Encrypted archive synced to Google Drive.")
+                    showProgressNotification("Google Drive Backup Complete", account, 100, backupFile.length(), backupFile.length(), isComplete = true)
                 } else {
                     val error = uploadResult.exceptionOrNull()?.localizedMessage ?: "Upload failed"
                     userPreferences.recordGoogleDriveBackupResult(now, "Upload failed: $error")
                     _exportState.value = ExportState.Error("Cloud upload failed: $error")
+                    showProgressNotification("Google Drive Backup Failed", account, 0, 0, 0, isComplete = false, errorMsg = error)
                 }
             } catch (e: Exception) {
                 userPreferences.recordGoogleDriveBackupResult(System.currentTimeMillis(), "Backup error: ${e.localizedMessage}")
                 _exportState.value = ExportState.Error("Google Drive backup failed: ${e.localizedMessage}")
+                showProgressNotification("Google Drive Backup Failed", account, 0, 0, 0, isComplete = false, errorMsg = e.localizedMessage)
             }
         }
     }
 
     fun restoreFromGoogleDriveCloud() {
         viewModelScope.launch {
-            _exportState.value = ExportState.Generating("Downloading backup from Google Drive...")
+            val signedInAccount = googleDriveService.getLastSignedInAccount()
+            if (signedInAccount == null) {
+                _restoreMessage.emit("Google Account is not authenticated. Tap 'Connected Account' to sign in with Google.")
+                _exportState.value = ExportState.Error("Google Account is not connected or missing Drive permissions. Tap 'Connected Account' to sign in.")
+                return@launch
+            }
+
+            _exportState.value = ExportState.Generating("Downloading backup from Google Drive...", progressPercent = 0)
             userPreferences.recordGoogleDriveBackupResult(System.currentTimeMillis(), "Downloading from Google Drive...")
             try {
                 val tempFile = File(context.cacheDir, "drive_restore.twbackup")
-                val downloadResult = googleDriveService.downloadBackupFile(tempFile)
+                val downloadResult = googleDriveService.downloadBackupFile(tempFile) { percent, bytes, total ->
+                    val transferredStr = formatBytes(bytes)
+                    val totalStr = formatBytes(total)
+                    val msg = "Downloading from Google Drive: $percent% ($transferredStr / $totalStr)"
+
+                    _exportState.value = ExportState.Generating(
+                        message = msg,
+                        progressPercent = percent,
+                        bytesTransferred = bytes,
+                        totalBytes = total
+                    )
+                }
+
                 if (downloadResult.isSuccess) {
-                    _exportState.value = ExportState.Generating("Decrypting & Restoring records...")
+                    _exportState.value = ExportState.Generating("Decrypting & Restoring records...", progressPercent = 100)
                     val restoreResult = backupRestoreManager.restoreEncryptedBackup(tempFile)
                     val now = System.currentTimeMillis()
                     if (restoreResult.isSuccess) {
@@ -197,6 +244,90 @@ class ExportViewModel @Inject constructor(
                 _exportState.value = ExportState.Error("Google Drive restore error: ${e.localizedMessage}")
             }
         }
+    }
+
+    private fun showProgressNotification(
+        title: String,
+        account: String,
+        progressPercent: Int,
+        bytesTransferred: Long,
+        totalBytes: Long,
+        isComplete: Boolean = false,
+        errorMsg: String? = null
+    ) {
+        val notificationManager = context.getSystemService(Context.NOTIFICATION_SERVICE) as? android.app.NotificationManager ?: return
+        val intent = Intent(context, com.trackwell.app.MainActivity::class.java).apply {
+            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
+        }
+        val pendingIntent = android.app.PendingIntent.getActivity(
+            context,
+            0,
+            intent,
+            android.app.PendingIntent.FLAG_UPDATE_CURRENT or android.app.PendingIntent.FLAG_IMMUTABLE
+        )
+
+        val notificationId = com.trackwell.app.worker.GoogleDriveBackupWorker.NOTIFICATION_ID_BACKUP
+
+        if (errorMsg != null) {
+            val notification = androidx.core.app.NotificationCompat.Builder(context, com.trackwell.app.TrackWellApp.CHANNEL_FLUID_NUDGE)
+                .setSmallIcon(android.R.drawable.stat_notify_error)
+                .setContentTitle("Google Drive Backup Failed")
+                .setContentText("Upload failed: $errorMsg")
+                .setPriority(androidx.core.app.NotificationCompat.PRIORITY_HIGH)
+                .setAutoCancel(true)
+                .setContentIntent(pendingIntent)
+                .setProgress(0, 0, false)
+                .build()
+            notificationManager.notify(notificationId, notification)
+            return
+        }
+
+        if (isComplete) {
+            val notification = androidx.core.app.NotificationCompat.Builder(context, com.trackwell.app.TrackWellApp.CHANNEL_FLUID_NUDGE)
+                .setSmallIcon(android.R.drawable.stat_sys_upload_done)
+                .setContentTitle("Google Drive Backup Complete (100%)")
+                .setContentText("Daily health records backed up to $account")
+                .setStyle(
+                    androidx.core.app.NotificationCompat.BigTextStyle()
+                        .bigText("Encrypted archive TrackWell_Backup.twbackup (100%) has been saved securely to your Google Drive cloud storage folder.")
+                )
+                .setPriority(androidx.core.app.NotificationCompat.PRIORITY_LOW)
+                .setAutoCancel(true)
+                .setOngoing(false)
+                .setProgress(0, 0, false)
+                .setContentIntent(pendingIntent)
+                .build()
+            notificationManager.notify(notificationId, notification)
+            return
+        }
+
+        val transferredStr = formatBytes(bytesTransferred)
+        val totalStr = formatBytes(totalBytes)
+        val progressText = if (totalBytes > 0) "$progressPercent% ($transferredStr / $totalStr)" else "$progressPercent%"
+
+        val notification = androidx.core.app.NotificationCompat.Builder(context, com.trackwell.app.TrackWellApp.CHANNEL_FLUID_NUDGE)
+            .setSmallIcon(android.R.drawable.stat_sys_upload)
+            .setContentTitle("Backing up to Google Drive... $progressPercent%")
+            .setContentText(progressText)
+            .setStyle(
+                androidx.core.app.NotificationCompat.BigTextStyle()
+                    .bigText("Uploading encrypted backup to $account: $progressText")
+            )
+            .setPriority(androidx.core.app.NotificationCompat.PRIORITY_LOW)
+            .setOngoing(true)
+            .setOnlyAlertOnce(true)
+            .setProgress(100, progressPercent, false)
+            .setContentIntent(pendingIntent)
+            .build()
+
+        notificationManager.notify(notificationId, notification)
+    }
+
+    private fun formatBytes(bytes: Long): String {
+        if (bytes <= 0) return "0 B"
+        val units = arrayOf("B", "KB", "MB", "GB")
+        val digitGroups = (Math.log10(bytes.toDouble()) / Math.log10(1024.0)).toInt().coerceIn(0, units.size - 1)
+        return String.format(java.util.Locale.US, "%.1f %s", bytes / Math.pow(1024.0, digitGroups.toDouble()), units[digitGroups])
     }
 
     fun restoreFromDriveUri(uri: Uri) {
@@ -258,12 +389,22 @@ class ExportViewModel @Inject constructor(
         _selectedRange.value = range
     }
 
+    private suspend fun getExportDateRange(range: ExportRange): Pair<String, String> {
+        return if (range == ExportRange.ALL_TIME) {
+            val startDate = dailyHealthRepository.getEarliestRecordDate()
+            val endDate = DateTimeUtils.getTodayIso()
+            Pair(startDate, endDate)
+        } else {
+            DateTimeUtils.getStartAndEndDateForDaysBack(range.days)
+        }
+    }
+
     fun exportPdf() {
         viewModelScope.launch {
             _exportState.value = ExportState.Generating("Generating Doctor PDF Report...")
             try {
                 val range = _selectedRange.value
-                val (startDate, endDate) = DateTimeUtils.getStartAndEndDateForDaysBack(range.days)
+                val (startDate, endDate) = getExportDateRange(range)
                 val days = dailyHealthRepository.getAllDaysListInRange(startDate, endDate)
                 val averages = dailyHealthRepository.getPeriodAverages(startDate, endDate).first()
                 val settings = userPreferences.settingsFlow.first()
@@ -294,7 +435,7 @@ class ExportViewModel @Inject constructor(
             _exportState.value = ExportState.Generating("Generating Multi-sheet Excel (.xlsx)...")
             try {
                 val range = _selectedRange.value
-                val (startDate, endDate) = DateTimeUtils.getStartAndEndDateForDaysBack(range.days)
+                val (startDate, endDate) = getExportDateRange(range)
                 val days = dailyHealthRepository.getAllDaysListInRange(startDate, endDate)
                 val averages = dailyHealthRepository.getPeriodAverages(startDate, endDate).first()
 
@@ -322,7 +463,7 @@ class ExportViewModel @Inject constructor(
             _exportState.value = ExportState.Generating("Exporting CSV...")
             try {
                 val range = _selectedRange.value
-                val (startDate, endDate) = DateTimeUtils.getStartAndEndDateForDaysBack(range.days)
+                val (startDate, endDate) = getExportDateRange(range)
                 val days = dailyHealthRepository.getAllDaysListInRange(startDate, endDate)
 
                 val csvFile = ExcelWorkbookGenerator.generateCsv(

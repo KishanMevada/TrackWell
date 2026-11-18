@@ -25,7 +25,7 @@ enum class FluidTimeRange(val days: Int, val label: String) {
     FOURTEEN_DAYS(14, "14D"),
     THIRTY_DAYS(30, "30D"),
     NINETY_DAYS(90, "90D"),
-    ALL_TIME(125, "All Time"),
+    ALL_TIME(0, "All Time"),
     CUSTOM(0, "Custom 📅")
 }
 
@@ -82,10 +82,14 @@ class FluidHistoryViewModel @Inject constructor(
 
     val uiState: StateFlow<FluidHistoryUiState> = combine(
         combine(_selectedRange, _customStartDate, _customEndDate) { range, start, end ->
-            if (range == FluidTimeRange.CUSTOM) Pair(start, end)
-            else DateTimeUtils.getStartAndEndDateForDaysBack(range.days)
-        }.flatMapLatest { (start, end) ->
-            dailyHealthRepository.getAllDaysInRange(start, end)
+            Triple(range, start, end)
+        }.flatMapLatest { (range, start, end) ->
+            val (effectiveStart, effectiveEnd) = when (range) {
+                FluidTimeRange.CUSTOM -> Pair(start, end)
+                FluidTimeRange.ALL_TIME -> Pair(dailyHealthRepository.getEarliestRecordDate(), DateTimeUtils.getTodayIso())
+                else -> DateTimeUtils.getStartAndEndDateForDaysBack(range.days)
+            }
+            dailyHealthRepository.getAllDaysInRange(effectiveStart, effectiveEnd)
         },
         userPreferences.settingsFlow,
         _selectedRange,

@@ -6,26 +6,26 @@ plugins {
     alias(libs.plugins.hilt.android)
 }
 
+kapt {
+    arguments {
+        arg("room.schemaLocation", "$projectDir/schemas")
+    }
+}
+
 android {
     namespace = "com.trackwell.app"
-    compileSdk = 34
+    compileSdk = 35
 
     defaultConfig {
         applicationId = "com.trackwell.app"
         minSdk = 26
-        targetSdk = 34
+        targetSdk = 35
         versionCode = 1
         versionName = "1.0.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables {
             useSupportLibrary = true
-        }
-
-        kapt {
-            arguments {
-                arg("room.schemaLocation", "$projectDir/schemas")
-            }
         }
     }
 
@@ -121,6 +121,9 @@ dependencies {
     // Coroutines
     implementation(libs.kotlinx.coroutines.android)
 
+    //Splash Screen
+    implementation(libs.androidx.core.splashscreen)
+
     // Testing
     testImplementation(libs.junit)
     testImplementation(libs.kotlinx.coroutines.test)
@@ -130,4 +133,5 @@ dependencies {
     androidTestImplementation(libs.androidx.ui.tooling)
 
     debugImplementation(libs.androidx.ui.tooling)
+    implementation(libs.androidx.ui.tooling)
 }

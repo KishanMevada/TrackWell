@@ -48,19 +48,24 @@ class GoogleDriveBackupWorker @AssistedInject constructor(
                 googleDriveService.getLastSignedInAccount()?.email ?: "Google Drive"
             }
 
-            val uploadResult = googleDriveService.uploadBackupFile(backupFile)
+            updateProgressNotification(0, 0, backupFile.length(), accountName)
+
+            val uploadResult = googleDriveService.uploadBackupFile(backupFile) { percent, bytes, total ->
+                updateProgressNotification(percent, bytes, total, accountName)
+            }
+
             if (uploadResult.isSuccess) {
                 val metadata = uploadResult.getOrNull()
                 val status = "Synced to $accountName (${metadata?.fileName ?: backupFile.name})"
                 userPreferences.recordGoogleDriveBackupResult(now, status)
-                showBackupNotification(metadata?.fileName ?: backupFile.name, accountName)
+                updateProgressNotification(100, backupFile.length(), backupFile.length(), accountName, isComplete = true)
                 Log.i(TAG, "Daily Google Drive backup completed successfully: ${metadata?.fileId}")
             } else {
                 val errorMsg = uploadResult.exceptionOrNull()?.localizedMessage ?: "Upload failed"
-                val status = "Local backup created ($accountName)"
+                val status = "Upload failed: $errorMsg"
                 userPreferences.recordGoogleDriveBackupResult(now, status)
-                showBackupNotification(backupFile.name, accountName)
-                Log.w(TAG, "Local backup created, but Google Drive cloud upload failed: $errorMsg")
+                updateProgressNotification(0, 0, 0, accountName, isComplete = false, errorMsg = errorMsg)
+                Log.w(TAG, "Google Drive cloud upload failed: $errorMsg")
             }
 
             Result.success()
@@ -74,7 +79,15 @@ class GoogleDriveBackupWorker @AssistedInject constructor(
         }
     }
 
-    private fun showBackupNotification(fileName: String, account: String) {
+    private fun updateProgressNotification(
+        progressPercent: Int,
+        bytesTransferred: Long,
+        totalBytes: Long,
+        account: String,
+        isComplete: Boolean = false,
+        errorMsg: String? = null
+    ) {
+        val notificationManager = context.getSystemService(Context.NOTIFICATION_SERVICE) as? NotificationManager ?: return
         val intent = Intent(context, MainActivity::class.java).apply {
             flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
         }
@@ -85,20 +98,65 @@ class GoogleDriveBackupWorker @AssistedInject constructor(
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
 
+        if (errorMsg != null) {
+            val notification = NotificationCompat.Builder(context, TrackWellApp.CHANNEL_FLUID_NUDGE)
+                .setSmallIcon(android.R.drawable.stat_notify_error)
+                .setContentTitle("Google Drive Backup Failed")
+                .setContentText("Upload failed: $errorMsg")
+                .setPriority(NotificationCompat.PRIORITY_HIGH)
+                .setAutoCancel(true)
+                .setContentIntent(pendingIntent)
+                .setProgress(0, 0, false)
+                .build()
+            notificationManager.notify(NOTIFICATION_ID_BACKUP, notification)
+            return
+        }
+
+        if (isComplete) {
+            val notification = NotificationCompat.Builder(context, TrackWellApp.CHANNEL_FLUID_NUDGE)
+                .setSmallIcon(android.R.drawable.stat_sys_upload_done)
+                .setContentTitle("Google Drive Backup Complete (100%)")
+                .setContentText("Daily health records backed up to $account")
+                .setStyle(
+                    NotificationCompat.BigTextStyle()
+                        .bigText("Encrypted archive TrackWell_Backup.twbackup (100%) has been saved securely to your Google Drive cloud storage folder.")
+                )
+                .setPriority(NotificationCompat.PRIORITY_LOW)
+                .setAutoCancel(true)
+                .setOngoing(false)
+                .setProgress(0, 0, false)
+                .setContentIntent(pendingIntent)
+                .build()
+            notificationManager.notify(NOTIFICATION_ID_BACKUP, notification)
+            return
+        }
+
+        val transferredStr = formatBytes(bytesTransferred)
+        val totalStr = formatBytes(totalBytes)
+        val progressText = if (totalBytes > 0) "$progressPercent% ($transferredStr / $totalStr)" else "$progressPercent%"
+
         val notification = NotificationCompat.Builder(context, TrackWellApp.CHANNEL_FLUID_NUDGE)
-            .setSmallIcon(android.R.drawable.stat_sys_upload_done)
-            .setContentTitle("Google Drive Backup Complete")
-            .setContentText("Daily health records backed up to $account")
+            .setSmallIcon(android.R.drawable.stat_sys_upload)
+            .setContentTitle("Backing up to Google Drive... $progressPercent%")
+            .setContentText(progressText)
             .setStyle(
                 NotificationCompat.BigTextStyle()
-                    .bigText("Encrypted archive $fileName has been saved securely to your Google Drive cloud storage folder.")
+                    .bigText("Uploading encrypted backup to $account: $progressText")
             )
             .setPriority(NotificationCompat.PRIORITY_LOW)
-            .setAutoCancel(true)
+            .setOngoing(true)
+            .setOnlyAlertOnce(true)
+            .setProgress(100, progressPercent, false)
             .setContentIntent(pendingIntent)
             .build()
 
-        val notificationManager = context.getSystemService(Context.NOTIFICATION_SERVICE) as? NotificationManager
-        notificationManager?.notify(NOTIFICATION_ID_BACKUP, notification)
+        notificationManager.notify(NOTIFICATION_ID_BACKUP, notification)
+    }
+
+    private fun formatBytes(bytes: Long): String {
+        if (bytes <= 0) return "0 B"
+        val units = arrayOf("B", "KB", "MB", "GB")
+        val digitGroups = (Math.log10(bytes.toDouble()) / Math.log10(1024.0)).toInt().coerceIn(0, units.size - 1)
+        return String.format(java.util.Locale.US, "%.1f %s", bytes / Math.pow(1024.0, digitGroups.toDouble()), units[digitGroups])
     }
 }

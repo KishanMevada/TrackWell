@@ -294,12 +294,8 @@ fun ExportScreen(
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .clickable {
-                                        if (settings.googleDriveAccount.isBlank()) {
-                                            val intent = viewModel.googleDriveService.getGoogleSignInClient().signInIntent
-                                            googleSignInLauncher.launch(intent)
-                                        } else {
-                                            showAccountDialog = true
-                                        }
+                                        val intent = viewModel.googleDriveService.getGoogleSignInClient().signInIntent
+                                        googleSignInLauncher.launch(intent)
                                     }
                                     .padding(vertical = 4.dp),
                                 verticalAlignment = Alignment.CenterVertically,
@@ -651,17 +647,53 @@ fun ExportScreen(
                                 border = BorderStroke(1.dp, Color(0xFFBAE6FD)),
                                 modifier = Modifier.fillMaxWidth()
                             ) {
-                                Row(
-                                    modifier = Modifier.padding(18.dp),
-                                    verticalAlignment = Alignment.CenterVertically
-                                ) {
-                                    CircularProgressIndicator(modifier = Modifier.size(24.dp), color = Color(0xFF0284C7), strokeWidth = 2.5.dp)
-                                    Spacer(modifier = Modifier.width(14.dp))
-                                    Text(
-                                        text = state.message,
-                                        style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Medium),
-                                        color = Color(0xFF0369A1)
-                                    )
+                                Column(modifier = Modifier.padding(18.dp)) {
+                                    if (state.progressPercent != null) {
+                                        Row(
+                                            modifier = Modifier.fillMaxWidth(),
+                                            horizontalArrangement = Arrangement.SpaceBetween,
+                                            verticalAlignment = Alignment.CenterVertically
+                                        ) {
+                                            Row(
+                                                verticalAlignment = Alignment.CenterVertically,
+                                                modifier = Modifier.weight(1f)
+                                            ) {
+                                                CircularProgressIndicator(modifier = Modifier.size(20.dp), color = Color(0xFF0284C7), strokeWidth = 2.dp)
+                                                Spacer(modifier = Modifier.width(10.dp))
+                                                Text(
+                                                    text = state.message,
+                                                    style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.SemiBold, fontSize = 13.sp),
+                                                    color = Color(0xFF0369A1)
+                                                )
+                                            }
+                                            Spacer(modifier = Modifier.width(8.dp))
+                                            Text(
+                                                text = "${state.progressPercent}%",
+                                                style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold, fontSize = 16.sp),
+                                                color = Color(0xFF0284C7)
+                                            )
+                                        }
+                                        Spacer(modifier = Modifier.height(10.dp))
+                                        androidx.compose.material3.LinearProgressIndicator(
+                                            progress = { (state.progressPercent.coerceIn(0, 100)) / 100f },
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .height(8.dp)
+                                                .clip(RoundedCornerShape(4.dp)),
+                                            color = Color(0xFF0284C7),
+                                            trackColor = Color(0xFFBAE6FD)
+                                        )
+                                    } else {
+                                        Row(verticalAlignment = Alignment.CenterVertically) {
+                                            CircularProgressIndicator(modifier = Modifier.size(24.dp), color = Color(0xFF0284C7), strokeWidth = 2.5.dp)
+                                            Spacer(modifier = Modifier.width(14.dp))
+                                            Text(
+                                                text = state.message,
+                                                style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Medium),
+                                                color = Color(0xFF0369A1)
+                                            )
+                                        }
+                                    }
                                 }
                             }
                         }
@@ -849,6 +881,24 @@ fun ExportScreen(
                         color = Color(0xFF0F172A)
                     )
                     Spacer(modifier = Modifier.height(16.dp))
+                    Button(
+                        onClick = {
+                            showAccountDialog = false
+                            val intent = viewModel.googleDriveService.getGoogleSignInClient().signInIntent
+                            googleSignInLauncher.launch(intent)
+                        },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(48.dp)
+                            .shadow(elevation = 4.dp, shape = RoundedCornerShape(24.dp), spotColor = Color(0x400284C7)),
+                        shape = RoundedCornerShape(24.dp),
+                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF0284C7))
+                    ) {
+                        Icon(imageVector = Icons.Default.AccountCircle, contentDescription = null, tint = Color.White, modifier = Modifier.size(18.dp))
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text("Sign In with Google Account", fontWeight = FontWeight.Bold, color = Color.White)
+                    }
+                    Spacer(modifier = Modifier.height(14.dp))
                     OutlinedTextField(
                         value = accountText,
                         onValueChange = { accountText = it },

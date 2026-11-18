@@ -277,6 +277,16 @@ class DailyHealthRepositoryImpl @Inject constructor(
         medicationDao.updateStatus(id, isTaken)
     }
 
+    override suspend fun getEarliestRecordDate(): String {
+        val d1 = dailyLogDao.getEarliestDate()
+        val d2 = fluidEntryDao.getEarliestDate()
+        val d3 = sugarEntryDao.getEarliestDate()
+        val dates = listOfNotNull(d1, d2, d3).filter { it.isNotBlank() }
+        val earliest = dates.minOrNull() ?: DateTimeUtils.getTodayIso()
+        val today = DateTimeUtils.getTodayIso()
+        return if (earliest > today) today else earliest
+    }
+
     private fun FluidEntryEntity.toDomain(): FluidEntry {
         return FluidEntry(
             id = id,

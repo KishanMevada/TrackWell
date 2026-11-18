@@ -8,6 +8,9 @@ import com.google.android.gms.auth.api.signin.GoogleSignInClient
 import com.google.android.gms.auth.api.signin.GoogleSignInOptions
 import com.google.android.gms.common.api.Scope
 import com.google.api.client.googleapis.extensions.android.gms.auth.GoogleAccountCredential
+import com.google.api.client.googleapis.media.MediaHttpDownloader
+import com.google.api.client.googleapis.media.MediaHttpUploader
+import com.google.api.client.googleapis.media.MediaHttpUploaderProgressListener
 import com.google.api.client.http.FileContent
 import com.google.api.client.http.javanet.NetHttpTransport
 import com.google.api.client.json.gson.GsonFactory
@@ -100,34 +103,50 @@ class GoogleDriveService @Inject constructor(
     }
 
     /**
-     * Upload or update backup archive in Google Drive AppData folder.
+     * Upload or update backup archive in Google Drive AppData folder with progress listener.
      */
-    suspend fun uploadBackupFile(localBackupFile: File): Result<DriveBackupMetadata> = withContext(Dispatchers.IO) {
+    suspend fun uploadBackupFile(
+        localBackupFile: File,
+        onProgress: ((progressPercent: Int, bytesTransferred: Long, totalBytes: Long) -> Unit)? = null
+    ): Result<DriveBackupMetadata> = withContext(Dispatchers.IO) {
         val drive = getDriveService()
             ?: return@withContext Result.failure(IllegalStateException("Google Account is not connected or missing Drive permissions."))
 
         try {
             val existingFile = findBackupFileInAppData(drive)
             val mediaContent = FileContent(BACKUP_MIME_TYPE, localBackupFile)
+            val totalBytes = localBackupFile.length()
+
+            val progressListener = MediaHttpUploaderProgressListener { uploader ->
+                val percent = when (uploader.uploadState) {
+                    MediaHttpUploader.UploadState.INITIATION_STARTED -> 0
+                    MediaHttpUploader.UploadState.INITIATION_COMPLETE -> 5
+                    MediaHttpUploader.UploadState.MEDIA_IN_PROGRESS -> (uploader.progress * 100).toInt().coerceIn(5, 99)
+                    MediaHttpUploader.UploadState.MEDIA_COMPLETE -> 100
+                    else -> 0
+                }
+                val numBytes = try { uploader.numBytesUploaded } catch (_: Exception) { (totalBytes * (percent / 100.0)).toLong() }
+                onProgress?.invoke(percent, numBytes, totalBytes)
+            }
 
             val uploadedFile: DriveFile = if (existingFile != null) {
-                // Update existing file in appDataFolder
                 val fileMetadata = DriveFile().apply {
                     name = BACKUP_FILE_NAME
                 }
-                drive.files().update(existingFile.id, fileMetadata, mediaContent)
-                    .setFields("id, name, modifiedTime, size")
-                    .execute()
+                val request = drive.files().update(existingFile.id, fileMetadata, mediaContent)
+                request.mediaHttpUploader.setProgressListener(progressListener)
+                request.setFields("id, name, modifiedTime, size").execute()
             } else {
-                // Create new file in appDataFolder
                 val fileMetadata = DriveFile().apply {
                     name = BACKUP_FILE_NAME
                     parents = listOf("appDataFolder")
                 }
-                drive.files().create(fileMetadata, mediaContent)
-                    .setFields("id, name, modifiedTime, size")
-                    .execute()
+                val request = drive.files().create(fileMetadata, mediaContent)
+                request.mediaHttpUploader.setProgressListener(progressListener)
+                request.setFields("id, name, modifiedTime, size").execute()
             }
+
+            onProgress?.invoke(100, totalBytes, totalBytes)
 
             val modifiedMs = uploadedFile.modifiedTime?.value ?: System.currentTimeMillis()
             val size = (uploadedFile.size ?: localBackupFile.length()).toLong()
@@ -148,9 +167,12 @@ class GoogleDriveService @Inject constructor(
     }
 
     /**
-     * Download backup archive from Google Drive AppData folder to local target file.
+     * Download backup archive from Google Drive AppData folder to local target file with progress listener.
      */
-    suspend fun downloadBackupFile(destFile: File): Result<File> = withContext(Dispatchers.IO) {
+    suspend fun downloadBackupFile(
+        destFile: File,
+        onProgress: ((progressPercent: Int, bytesTransferred: Long, totalBytes: Long) -> Unit)? = null
+    ): Result<File> = withContext(Dispatchers.IO) {
         val drive = getDriveService()
             ?: return@withContext Result.failure(IllegalStateException("Google Account is not connected."))
 
@@ -158,9 +180,23 @@ class GoogleDriveService @Inject constructor(
             val remoteFile = findBackupFileInAppData(drive)
                 ?: return@withContext Result.failure(IllegalStateException("No backup found in Google Drive AppData."))
 
+            val totalBytes = (remoteFile.size ?: 0L).toLong()
+            val request = drive.files().get(remoteFile.id)
+            request.mediaHttpDownloader.setProgressListener { downloader ->
+                val percent = when (downloader.downloadState) {
+                    MediaHttpDownloader.DownloadState.MEDIA_IN_PROGRESS -> (downloader.progress * 100).toInt().coerceIn(0, 99)
+                    MediaHttpDownloader.DownloadState.MEDIA_COMPLETE -> 100
+                    else -> 0
+                }
+                val numBytes = try { downloader.numBytesDownloaded } catch (_: Exception) { (totalBytes * (percent / 100.0)).toLong() }
+                onProgress?.invoke(percent, numBytes, totalBytes)
+            }
+
             val outputStream = FileOutputStream(destFile)
-            drive.files().get(remoteFile.id).executeMediaAndDownloadTo(outputStream)
+            request.executeMediaAndDownloadTo(outputStream)
             outputStream.close()
+
+            onProgress?.invoke(100, totalBytes, totalBytes)
 
             Log.i(TAG, "Successfully downloaded backup from Drive AppData: ${destFile.absolutePath}")
             Result.success(destFile)

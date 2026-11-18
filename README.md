@@ -11,7 +11,6 @@
 <p align="center">
   <a href="https://kotlinlang.org"><img src="https://img.shields.io/badge/Kotlin-2.0.21-blue.svg?logo=kotlin" alt="Kotlin"></a>
   <a href="https://developer.android.com/jetpack/compose"><img src="https://img.shields.io/badge/Jetpack%20Compose-Material%203-4285F4.svg?logo=android" alt="Jetpack Compose"></a>
-  <a href="https://hl7.org/fhir"><img src="https://img.shields.io/badge/FHIR-R4%20Compliant-red.svg" alt="FHIR R4"></a>
   <a href="https://developer.android.com/training/data-storage/room"><img src="https://img.shields.io/badge/Room-2.6.1-green.svg" alt="Room Database"></a>
   <a href="https://dagger.dev/hilt/"><img src="https://img.shields.io/badge/Dagger%20Hilt-2.51.1-orange.svg" alt="Hilt"></a>
   <a href="https://developer.android.com/about/versions/15"><img src="https://img.shields.io/badge/Android-API%2026%2B%20(Target%2035)-3DDC84.svg?logo=android" alt="Android Target 35"></a>
@@ -24,7 +23,7 @@
 
 Post-transplant care requires relentless daily vigilance: calculating net fluid intake versus output, spotting early fluid retention through morning dry weight, managing tight glycemic targets, and strictly adhering to immunosuppressive regimens.
 
-**TrackWell** replaces fragile paper logs and fragmented spreadsheets with a medically tuned, privacy-first mobile companion. Engineered specifically for renal care routines, TrackWell pairs robust offline persistence with an expressive **Aura Claymorphic & Vascular** design language, **HL7 FHIR R4 hospital EMR interoperability**, and **WhatsApp-style encrypted Google Drive cloud sync**.
+**TrackWell** replaces fragile paper logs and fragmented spreadsheets with a medically tuned, privacy-first mobile companion. Engineered specifically for renal care routines, TrackWell pairs robust offline persistence with an expressive **Aura Claymorphic & Vascular** design language.
 
 ---
 
@@ -40,12 +39,12 @@ Post-transplant care requires relentless daily vigilance: calculating net fluid 
 
 ---
 
-## 🌟 Key Capabilities & Features
+## 🌟 Core Features
 
 ### 💧 Fluid Balance & Retention Monitoring
-- **Dual Intake vs. Output Tracking:** Track water, tea, beverages, and urine output in millilitres (ml).
+- **Dual Intake vs. Output Tracking:** Track water, tea, electrolytes, and urine output in millilitres (ml).
 - **Net Fluid Balance:** Live calculation (`Total Intake - Total Urine`) with clinical color coding to instantly identify hypervolemic (fluid retention) or hypovolemic (dehydration) states.
-- **Fast 2-Tap Logging:** Quick-add bottom sheet featuring fast volume chips (`50`, `100`, `150`, `200`, `250` ml) and an interactive custom numeric keypad.
+- **Fast 2-Tap Logging:** Quick-add bottom sheet featuring fast volume chips (`50`, `100`, `150`, `200`, `250` ml) and an tactile custom numeric keypad.
 - **Dynamic Progress Ring:** Animated circular gauge showing intake relative to the patient's daily target.
 
 ### ⚖️ Morning Dry Weight Sentinel
@@ -54,44 +53,49 @@ Post-transplant care requires relentless daily vigilance: calculating net fluid 
 - **Micro-Adjustment Controls:** Tactile stepper and quick offsets (`-0.5`, `-0.2`, `-0.1`, `Target`, `+0.1`, `+0.2`, `+0.5`).
 
 ### 🩸 Glycemic Waveform & Insulin Tracking
-- **4 Clinically Aligned Slots:** *Before Breakfast* (Fasting), *Before Lunch* (Pre-meal), *After Lunch* (Post-meal), *Before Dinner* (Pre-meal).
+- **4 Clinically Aligned Slots:**
+  - *Before Breakfast* (Fasting)
+  - *Before Lunch* (Pre-meal)
+  - *After Lunch* (Post-meal)
+  - *Before Dinner* (Pre-meal)
 - **Time-Aware Slot Suggestion:** Automatically pre-selects the relevant testing window based on local time.
 - **Glycemic Waveform Ribbon:** Visual waveform showing glucose trajectory throughout the day.
 - **Insulin Dose Stepper:** Record rapid-acting or basal units alongside readings.
+- **Outlier Banners:** Immediate visual feedback when values diverge from patient targets.
 
-### 🏥 HL7 FHIR Release 4 (R4) Hospital EMR Interoperability & Clinic QR Code
-- **Official LOINC Coding:** Maps patient metrics into international LOINC health codes:
-  - **Fluid Intake:** `LOINC 9052-2`
-  - **Urine Output:** `LOINC 9209-4`
-  - **Blood Glucose:** `LOINC 15074-8`
-  - **Body Weight:** `LOINC 29463-7`
-- **FHIR R4 Bundle Export:** Export `.fhir.json` bundles containing `Patient`, `Observation`, and `MedicationStatement` resources compatible with hospital EHR systems (Epic MyChart, Cerner, AthenaHealth).
-- **Clinic QR Code Generator:** Renders a high-density 2D matrix QR code directly on screen for 2-second scanning into doctor and clinic tablet systems.
+### 💊 Immunosuppressant & Medication Management
+- **Rigorous Regimen Tracking:** Built specifically for critical medications (Tacrolimus, Mycophenolate, Prednisolone, antihypertensives).
+- **Time-Specific Dose Schedules:** Set morning, afternoon, evening, and bedtime dosage plans.
+- **Actionable Notification Reminders:** High-priority alarms with one-tap "Took it" confirmations.
+- **Pause & Resume Controls:** Flexible temporary pause states for clinical adjustments.
 
-### ☁️ Encrypted Google Drive Cloud Sync (WhatsApp Style)
-- **AppData Hidden Storage (`drive.appdata`):** Backups are saved in Google Drive's hidden app folder, preventing accidental file deletion.
-- **AES-256 GCM Encryption:** Archives are locally encrypted with AES-256 GCM before cloud upload.
-- **Automated WorkManager Scheduling:** Periodic background syncs run automatically (e.g. daily at 02:00 AM).
-- **Interactive Sync Status:** WhatsApp-style progress indicator and real-time status updates in Export Screen.
+### 📲 Home-Screen Widgets (Jetpack Glance)
+- **Fluid Quick-Add Widget (2x1):** Immediate logging from the home screen without launching the full app.
+- **Daily Fluid Balance Widget (4x2):** Glanceable progress ring, total intake, urine output, and net balance.
+- **Blood Sugar Widget:** Next scheduled test slot and latest reading with one-tap entry.
+- **Weight Widget:** Current dry weight and morning prompt.
 
-### 🗣️ Android AppFunctions Voice Framework & Launcher Shortcuts
-- **Hands-Free Assistant Integration:** Google Assistant and Android System AppFunctions hooks for logging fluid intake, urine output, and blood glucose.
-- **Interactive Launcher Shortcuts:** Tap-and-hold home screen app shortcuts to launch interactive `FluidEntryBottomSheet` and `SugarEntryBottomSheet` forms.
+### 🤖 AI-Assisted OCR Data Import
+- **On-Device Optical Character Recognition (ML Kit):** Scan printed or handwritten historical logs via camera or gallery without data leaving the phone.
+- **Auto-Layout Detection:** Heuristic engine separating fluid logs from glycemic tables.
+- **Interactive Review Table:** Color-coded confidence scores highlighting ambiguities. Allows users to **Merge**, **Overwrite**, or **Skip** dates with duplicate detection.
+- **Import Rollback / Undo:** Every imported batch is tracked with one-click undo capability.
+- **Optional Gemini API:** Optional integration for advanced handwriting interpretation.
 
-### 🛡️ 100% Zero Data Loss Protection Vault
-- **No Destructive Fallback:** Disabled Room's `fallbackToDestructiveMigration()`, preventing table wipes on updates.
-- **Physical Safety Vault (`DatabaseSafetyManager`):** Automatically creates physical byte-for-byte pre-migration snapshots of `trackwell.db` in `filesDir/db_safety_vault/` on app launch with emergency auto-recovery.
+### 📄 Clinical Exports & Encrypted Backup
+- **Doctor-Ready Vector PDF:** Native `PdfDocument` generation producing clean, multi-page clinical reports complete with patient metrics, daily averages, and doctor sign-off lines.
+- **Multi-Sheet Excel (.xlsx):** Structured workbooks separating fluid balance, sugar & insulin, and daily summaries.
+- **CSV Export:** Fast, standard comma-separated exports compatible with any analytical software.
+- **Encrypted Google Drive Sync:** Background backup with AES-256 local export encryption.
 
-### 🎨 4-Hub Settings Screen Redesign
-- **Hero Patient Care Profile:** Top card displaying Patient Name, Blood Group, Transplant Date, and Nephrologist Contact with 1-tap edit navigation.
-- **Clinical Targets Hub:** Prominent cards for Fluid Balance Targets (`1,500 mL in / 1,200 mL out`) and Blood Sugar Safe Zone (`80–130 mg/dL`).
-- **Security & Data Hub:** Consolidated controls for Biometric Lock, FHIR/Excel/PDF Exports, and Routine Import.
-- **Advanced Diagnostics Accordion:** Collapsible bottom section for Gemini AI Key configuration and developer tools.
+---
 
-### ⚡ 120 FPS High-Refresh-Rate Performance Architecture
-- **Compose `@Immutable` Optimization:** Domain data models annotated with `@Immutable` to skip 90% of redundant recompositions.
-- **GPU Hardware Acceleration (`graphicsLayer`):** Offloaded 3D clay shadows, wave animations, and gradients directly to the GPU hardware layer.
-- **Claymorphic Skeleton Shimmer:** Skeleton placeholders for zero pop-in loading transitions.
+## 🎨 Design Philosophy: Aura Claymorphic & Vascular
+
+TrackWell is crafted with a bespoke design system combining **Aura Claymorphic depth** and anatomical **Vascular fluid flows**:
+* **Claymorphic Surfaces:** Soft inner and outer shadows, rounded contours, and translucent frosted glass overlays.
+* **Anatomical Visuals:** Custom-rendered vascular background channels and renal backdrop shaders.
+* **Haptic & Visual Feedback:** Dynamic micro-interactions, responsive spring physics, and high-contrast clinical accessibility.
 
 ---
 
@@ -103,38 +107,30 @@ TrackWell adheres to Google's official **Clean Architecture & Android App Archit
 app/
 ├── alarms/               # AlarmManager punctuality handlers & BootReceiver
 ├── data/
-│   ├── appfunctions/     # Voice AppFunctions & Google Assistant hooks
-│   ├── local/database/   # Room DB, DatabaseSafetyManager vault & DatabaseSeeder
+│   ├── local/database/   # Room DB (Entities, DAOs, TypeConverters)
 │   ├── local/preferences/# Jetpack DataStore for user thresholds & targets
-│   ├── medicine/         # Medicine repository & schedule DAOs
-│   └── remote/           # GoogleDriveService (AppData Drive API)
-├── di/                   # Dagger Hilt Modules
-├── domain/
-│   ├── fhir/             # HL7 FHIR R4 Exporter Engine & Clinic QR Code Generator
-│   ├── model/            # Immutable clinical domain models & summaries
-│   ├── repository/       # Repository interfaces
-│   └── usecase/          # Clinical calculations (period averages, fluid summaries)
+│   ├── medicine/         # Medicine repository implementations
+│   └── importexport/     # PDF vector generation & Excel/CSV parsers
+├── domain/               # Domain models, clinical calculations & use cases
 ├── notification/         # Notification channels & rich action handlers
 ├── ui/
-│   ├── common/           # Claymorphic 3D icons, reusable dialogs & haptics
+│   ├── common/           # Claymorphic 3D icons, reusable dialogs & steppers
 │   ├── home/components/  # Renal backdrop, fluid rings, vascular canvas
 │   ├── navigation/       # Jetpack Compose Navigation & NavRoutes
-│   ├── screens/          # Feature screens (Today, Fluid, Sugar, Weight, Meds, Export, Import, Settings)
+│   ├── screens/          # Feature screens (Today, Fluid, Sugar, Weight, Meds, Export, Import)
 │   └── theme/            # TargetTokens, Color, Shape, Typography, DesignScale
 ├── widget/               # Jetpack Glance home-screen widgets & quick entry
-└── worker/               # WorkManager background tasks (fluid nudges, Google Drive backups)
+└── worker/               # WorkManager background tasks (fluid nudges, auto-backups)
 ```
 
 ### Key Libraries & Components
 * **UI & Styling:** Jetpack Compose (1.7), Material 3, Accompanist System UI Controller
-* **Medical Standards:** HL7 FHIR Release 4 (R4)
 * **Dependency Injection:** Dagger Hilt
 * **Database & Storage:** Room Database, EncryptedSharedPreferences, Jetpack DataStore Preferences
-* **Cloud Sync & Auth:** Google Drive REST API v3, Google Play Services Auth
 * **Home-Screen Widgets:** Jetpack Glance
 * **Background Tasks:** AndroidX WorkManager & AlarmManager
 * **Machine Learning / OCR:** Google ML Kit Text Recognition
-* **Reports & Exports:** Android Native `PdfDocument`, Apache POI (Excel), FHIR R4 JSON Exporter
+* **Reports:** Android Native `PdfDocument` & Apache POI (Streaming OpenXML)
 * **Concurrency:** Kotlin Coroutines & Reactive StateFlow
 
 ---
@@ -180,10 +176,9 @@ app/
 
 ## 🔒 Privacy & Security
 
-* **100% Offline-First Core:** All health data (intake, urine, weight, glucose, doses) is stored locally on the patient's device in an encrypted Room SQLite database.
-* **Encrypted Cloud Backups:** Backups uploaded to Google Drive are encrypted with AES-256 GCM and isolated inside the hidden `appDataFolder`.
-* **Zero Telemetry / No Trackers:** Zero analytics SDKs, trackers, or unexpected outbound connections.
-* **Biometric Lock Support:** Integrated biometric / PIN prompt safeguarding sensitive clinical data from unauthorized physical access.
+* **100% Offline-First:** All health data (intake, urine, weight, glucose, doses) is stored locally on the patient's device in an encrypted Room SQLite database.
+* **No Telemetry / No Tracking:** Zero analytics SDKs, trackers, or unexpected outbound connections.
+* **Biometric Lock Support:** Integrated biometric / PIN prompt safeguarding sensitive clinical data from unauthorized access.
 
 ---
 
